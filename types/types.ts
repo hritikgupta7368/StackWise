@@ -29,9 +29,12 @@ export type Problem = {
   id: string;
   topicId: string; // Foreign key linking to DsaTopic
   title: string;
+  explanation: string;
   problemLink?: string;
   difficultyLevel: "easy" | "medium" | "hard";
-  content: ContentElement[];
+  testCase: string;
+  solution: string;
+  code: string;
   similarProblems?: SimilarProblem[];
 };
 

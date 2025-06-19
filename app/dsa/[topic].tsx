@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, Stack } from "expo-router";
-import { useProblemStore } from "../../hooks/useStore";
+import { useAppStore, useAppStoreStore } from "../../hooks/useStore";
 import SliderComponent from "../../components/Preview/sliderPagination";
 import { FontAwesome } from "@expo/vector-icons";
 import SimilarQuestionCard from "../../components/Preview/similarCard";
@@ -36,7 +36,7 @@ interface Problem {
 
 export default function TopicPage() {
   const { topic } = useLocalSearchParams<{ topic?: string }>();
-  const getProblemsByTopicId = useProblemStore((s) => s.getProblemsByTopicId);
+  const getProblemsByTopicId = useAppStore((s) => s.getDsaProblemsByTopicId);
   const [problems, setProblems] = useState<Problem[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [previewIndex, setPreviewIndex] = useState(0);
@@ -250,7 +250,7 @@ export default function TopicPage() {
             </View>
 
             {/* Description */}
-            <Text style={styles.description}>{current.description}</Text>
+            <Text style={styles.description}>{current.explanation}</Text>
 
             {/* Test Cases */}
             <View style={styles.testCaseWrapper}>
@@ -263,11 +263,11 @@ export default function TopicPage() {
             {/* Explanation */}
             <View style={styles.explanationContainer}>
               <Text style={styles.explanationTitle}>Explanation:</Text>
-              <Text style={styles.explanationText}>{current.explanation}</Text>
+              <Text style={styles.explanationText}>{current.solution}</Text>
             </View>
 
             {/* Images Grid */}
-            {images?.length > 0 && (
+            {/* {images?.length > 0 && (
               <View style={styles.imageGrid}>
                 {images.slice(0, 4).map((img, idx) => (
                   <TouchableOpacity
@@ -288,13 +288,13 @@ export default function TopicPage() {
               </View>
             )}
 
-            {/* Fullscreen Viewer */}
+
             <ImageViewing
               images={images?.map((uri) => ({ uri })) || []}
               imageIndex={currentImageIndex}
               visible={isViewerVisible}
               onRequestClose={() => setViewerVisible(false)}
-            />
+            /> */}
 
             {/* Code Block */}
             {current.code && (

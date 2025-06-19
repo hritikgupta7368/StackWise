@@ -23,7 +23,7 @@ export default function DsaTopics() {
   }, [topics]);
 
   const handleDelete = (id: string) => deleteTopic(id);
-  console.log("Hello", topics);
+
   return (
     <BackgroundWrapper>
       <View style={styles.container}>
