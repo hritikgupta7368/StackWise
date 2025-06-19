@@ -1,0 +1,19 @@
+# dependencies
+node_modules/
+
+# Expo
+.expo/
+.expo-shared/
+web-build/
+dist/
+build/
+
+# OS
+.DS_Store
+
+# Logs
+*.log
+
+# Misc
+.env
+*.lock
