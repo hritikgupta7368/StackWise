@@ -1,335 +1,410 @@
+/**
+ * Zustand-based global state management for the learning app.
+ *
+ * This store manages multiple domains of learning content using Zustand and AsyncStorage for persistence:
+ *
+ * 🔸 Domains:
+ *   - DSA: Topics and associated problems
+ *   - Core: Categories, topics, and subtopics
+ *   - Interview: Standalone interview questions
+ *   - System Design: Categories, topics, and subtopics
+ *
+ * 🔸 Features:
+ *   - CRUD operations for all entities in each domain
+ *   - Cascading deletions (e.g., deleting a category removes nested topics/subtopics)
+ *   - Utility getters (by ID, by parentId, etc.)
+ *   - Data persistence with AsyncStorage via Zustand middleware
+ *   - Supports toggling mock data via `USE_MOCK_DATA`
+ *   - Global utilities: clear all data, import/export entire state
+ *
+ * 🔸 Tech:
+ *   - Zustand (with `persist` middleware)
+ *   - AsyncStorage for local data persistence
+ *
+ * Usage:
+ *   - Import `useAppStore()` in any component to access or modify state
+ */
+
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import {
+  AppState,
+  AppActions,
+  AppStore,
+  DsaTopic,
+  Problem,
+  CoreCategory,
+  CoreTopic,
+  CoreSubtopic,
+  InterviewQuestion, // New
+  SystemDesignCategory, // New
+  SystemDesignTopic, // New
+  SystemDesignSubtopic, // New
+} from "../types/types"; // Adjust this path
 
-// --- Mock Data (Remove this section in production) ---
-const USE_MOCK_DATA = true; // Set to false to disable mock data
+// --- Mock Data Imports ---
+import { dummyDsaTopics } from "../data/mock/dummyDsaTopics";
+import { dummyDsaProblems } from "../data/mock/dummyDsaProblems";
+import { dummyCoreCategories } from "../data/mock/dummyCoreCategories";
+import { dummyCoreTopics } from "../data/mock/dummyCoreTopics";
+import { dummyCoreSubtopics } from "../data/mock/dummyCoreSubtopics";
+import { dummyInterviewQuestions } from "../data/mock/dummyInterviewQuestions"; // New
+import { dummySystemDesignCategories } from "../data/mock/dummySystemDesignCategories"; // New
+import { dummySystemDesignTopics } from "../data/mock/dummySystemDesignTopics"; // New
+import { dummySystemDesignSubtopics } from "../data/mock/dummySystemDesignSubtopics"; // New
 
-export const dummyTopics: DsaTopic[] = [
-  {
-    id: "1",
-    title: "Two Pointers",
-    subtitle: "Problems related to arrays.",
+// --- Configuration ---
+const USE_MOCK_DATA = true; // Set to false to disable mock data for persistence
+
+// --- Initial State Definition ---
+const initialState: AppState = {
+  dsa: {
+    topics: USE_MOCK_DATA ? dummyDsaTopics : [],
+    problems: USE_MOCK_DATA ? dummyDsaProblems : [],
   },
-  {
-    id: "2",
-    title: "Sliding Window",
-    subtitle: "Problems related to sliding window",
+  core: {
+    categories: USE_MOCK_DATA ? dummyCoreCategories : [],
+    topics: USE_MOCK_DATA ? dummyCoreTopics : [],
+    subtopics: USE_MOCK_DATA ? dummyCoreSubtopics : [],
   },
-];
-
-export const dummyProblems: Problem[] = [
-  {
-    id: "101",
-    topicId: "1", // Belongs to Arrays
-    title: "Two Sum",
-    problemLink: "https://leetcode.com/problems/two-sum/",
-    testCase:
-      "Input: nums = [2,7,11,15], target = 9\nOutput: [0,1]\nExplanation: Because nums[0] + nums[1] == 9, we return [0, 1].",
-    description:
-      "Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.",
-    difficultyLevel: "easy",
-    explanation: `A common approach is to use a hash map (or dictionary). We iterate through the array, and for each number, we calculate the complement needed to reach the target (complement = target - num).`,
-    code: `def twoSum(arr, target):
-        n = len(arr)
-
-        # Iterate through each element in the array
-        for i in range(n):
-
-            # For each element arr[i], check every
-            # other element arr[j] that comes after it
-            for j in range(i + 1, n):
-
-                # Check if the sum of the current pair
-                # equals the target
-                if arr[i] + arr[j] == target:
-                    return True
-
-        # If no pair is found after checking
-        # all possibilities
-        return False `,
-    similarProblems: [
-      {
-        title: "3Sum",
-        description:
-          "Find three numbers that sum to zero (sorting + two pointers). ",
-        shortExplanation: [
-          "Sort the input array first.",
-          "Iterate through the array, fixing one element.",
-          "Use a two-pointer approach on the remaining part to find the other two elements.",
-          "Handle duplicates to avoid redundant triplets.",
-        ],
-        difficultyLevel: "medium",
-        code: `
-        #this is the first comment
-        def threeSum(nums):
-            nums.sort()
-            result = []
-            for i in range(len(nums) - 2):
-                if i > 0 and nums[i] == nums[i-1]:
-                    continue
-                left, right = i + 1, len(nums) - 1
-                while left < right:
-                    current_sum = nums[i] + nums[left] + nums[right]
-                    if current_sum < 0:
-                        left += 1
-                    elif current_sum > 0:
-                        right -= 1
-                    else:
-                        result.append([nums[i], nums[left], nums[right]])
-                        while left < right and nums[left] == nums[left+1]:
-                            left += 1
-                        while left < right and nums[right] == nums[right-1]:
-                            right -= 1
-                        left += 1
-                        right -= 1
-            return result
-            `,
-      },
-      {
-        title: "Two Sum II - Input Array Is Sorted",
-        description: "Array is sorted, can use two pointers from both ends.",
-        shortExplanation: [
-          "Initialize two pointers: one at the beginning (left) and one at the end (right).",
-          "While left < right:",
-          "  If sum > target, decrement right.",
-          "  If sum < target, increment left.",
-          "  If sum == target, return indices.",
-        ],
-        difficultyLevel: "easy",
-        code: `
-        def twoSumSorted(numbers, target):
-            left, right = 0, len(numbers) - 1
-            while left < right:
-                current_sum = numbers[left] + numbers[right]
-                if current_sum == target:
-                    return [left + 1, right + 1] # 1-indexed output
-                elif current_sum < target:
-                    left += 1
-                else:
-                    right -= 1
-            return []
-            `,
-      },
-      {
-        title: "Two Sum IV - Input is a BST",
-        description: "Input is a Binary Search Tree, traverse and use a set.",
-        shortExplanation: [
-          "Perform an in-order traversal of the BST to get sorted elements, or use a hash set.",
-          "During traversal, for each node value, check if `target - node.val` exists in the set.",
-          "If it exists, you found a pair.",
-          "If not, add `node.val` to the set and continue traversal.",
-        ],
-        difficultyLevel: "medium",
-        code: `
-        # Definition for a binary tree node.
-        # class TreeNode:
-        #     def __init__(self, val=0, left=None, right=None):
-        #         self.val = val
-        #         self.left = left
-        #         self.right = right
-
-        def findTarget(root, k):
-            seen = set()
-            def dfs(node):
-                if not node:
-                    return False
-                if (k - node.val) in seen:
-                    return True
-                seen.add(node.val)
-                return dfs(node.left) or dfs(node.right)
-            return dfs(root)
-            `,
-      },
-    ],
+  interview: {
+    // Initialize new interview domain
+    questions: USE_MOCK_DATA ? dummyInterviewQuestions : [],
   },
-
-  {
-    id: "102",
-    topicId: "1", // Belongs to Arrays
-    title: "Contains Duplicate",
-    description:
-      "Given an integer array nums, return true if any value appears at least twice in the array, and return false if every element is distinct.",
-    difficultyLevel: "easy",
-    explanation:
-      "Use a hash set to store numbers as you iterate. If you encounter a number already in the set, you've found a duplicate.",
-    code: `def twoSum(arr, target):
-          n = len(arr)
-
-          # Iterate through each element in the array
-          for i in range(n):
-
-              # For each element arr[i], check every
-              # other element arr[j] that comes after it
-              for j in range(i + 1, n):
-
-                  # Check if the sum of the current pair
-                  # equals the target
-                  if arr[i] + arr[j] == target:
-                      return True
-
-          # If no pair is found after checking
-          # all possibilities
-          return False `,
+  systemDesign: {
+    // Initialize new system design domain
+    categories: USE_MOCK_DATA ? dummySystemDesignCategories : [],
+    topics: USE_MOCK_DATA ? dummySystemDesignTopics : [],
+    subtopics: USE_MOCK_DATA ? dummySystemDesignSubtopics : [],
   },
-  {
-    id: "103",
-    topicId: "1", // Belongs to Arrays
-    title: "Best Time to Buy and Sell Stock",
-    description:
-      "You want to maximize your profit by choosing a single day to buy one stock and choosing a different day in the future to sell that stock.",
-    difficultyLevel: "medium",
-    explanation:
-      "Iterate through the prices, keeping track of the minimum price found so far and the maximum profit that can be achieved.",
-  },
-  {
-    id: "104",
-    topicId: "2", // Belongs to Arrays
-    title: "Sliding Window Maximum",
-    description:
-      "You want to maximize your profit by choosing a single day to buy one stock and choosing a different day in the future to sell that stock.",
-    difficultyLevel: "medium",
-    explanation:
-      "Iterate through the prices, keeping track of the minimum price found so far and the maximum profit that can be achieved.",
-  },
-];
-// --- End Mock Data ---
-
-// --- Type Definitions ---
-export type Problem = {
-  id: string;
-  topicId: string;
-  title: string;
-  testCase?: string;
-  description: string;
-  difficultyLevel: "easy" | "medium" | "hard";
-  problemLink?: string;
-  explanation: string;
-  images?: string[];
-  code?: string;
-  similarProblems?: {
-    title: string;
-    description: string;
-    shortExplanation: string | string[];
-    difficultyLevel: "easy" | "medium" | "hard";
-    code?: string;
-  }[];
-};
-
-export type DsaTopic = {
-  id: string;
-  title: string;
-  subtitle: string;
-};
-
-// --- Store Type Definition ---
-type ProblemStore = {
-  topics: DsaTopic[];
-  problems: Problem[]; // NEW: Array to hold all problems
-  // --- DSA Topics CRUD ---
-  addTopic: (topic: DsaTopic) => void;
-  deleteTopic: (id: string) => void;
-  updateTopic: (updated: DsaTopic) => void;
-  // --- DSA Problems CRUD ---
-  addProblem: (problem: Problem) => void;
-  deleteProblem: (id: string) => void;
-  updateProblem: (updated: Problem) => void;
-  getProblemsByTopicId: (topicId: string) => Problem[];
-  clearAll: () => void; // For development/resetting
 };
 
 // --- Zustand Store Creation ---
-export const useProblemStore = create<ProblemStore>()(
+export const useAppStore = create<AppStore>()(
   persist(
     (set, get) => ({
-      topics: USE_MOCK_DATA ? dummyTopics : [],
-      problems: USE_MOCK_DATA ? dummyProblems : [], // Initialize the problems array
-      // Topic actions
-      addTopic: (topic) => {
-        try {
-          set({ topics: [...get().topics, topic] });
-        } catch (error) {
-          console.error("Error adding topic:", error);
-        }
+      ...initialState, // Initialize store with the defined initial state
+
+      // --- DSA Topic Actions ---
+      addDsaTopic: (topic) => {
+        set((state) => ({
+          dsa: { ...state.dsa, topics: [...state.dsa.topics, topic] },
+        }));
       },
-      deleteTopic: (id) => {
-        try {
-          set((state) => ({
-            topics: state.topics.filter((t) => t.id !== id),
-            // When a topic is deleted, also remove its associated problems
-            problems: state.problems.filter((p) => p.topicId !== id),
-          }));
-        } catch (error) {
-          console.error("Error deleting topic:", error);
-        }
+      deleteDsaTopic: (id) => {
+        set((state) => ({
+          dsa: {
+            ...state.dsa,
+            topics: state.dsa.topics.filter((t) => t.id !== id),
+            problems: state.dsa.problems.filter((p) => p.topicId !== id),
+          },
+        }));
       },
-      updateTopic: (updated) => {
-        try {
-          set({
-            topics: get().topics.map((t) =>
+      updateDsaTopic: (updated) => {
+        set((state) => ({
+          dsa: {
+            ...state.dsa,
+            topics: state.dsa.topics.map((t) =>
               t.id === updated.id ? updated : t,
             ),
-          });
-        } catch (error) {
-          console.error("Error updating topic:", error);
-        }
+          },
+        }));
       },
-      // Problem actions
+      getDsaTopicById: (id) =>
+        get().dsa.topics.find((topic) => topic.id === id),
+
+      // --- DSA Problem Actions ---
       addProblem: (problem) => {
-        try {
-          set({ problems: [...get().problems, problem] });
-        } catch (error) {
-          console.error("Error adding problem:", error);
-        }
+        set((state) => ({
+          dsa: { ...state.dsa, problems: [...state.dsa.problems, problem] },
+        }));
       },
       deleteProblem: (id) => {
-        try {
-          set({ problems: get().problems.filter((p) => p.id !== id) });
-        } catch (error) {
-          console.error("Error deleting problem:", error);
-        }
+        set((state) => ({
+          dsa: {
+            ...state.dsa,
+            problems: state.dsa.problems.filter((p) => p.id !== id),
+          },
+        }));
       },
       updateProblem: (updated) => {
-        try {
-          set({
-            problems: get().problems.map((p) =>
+        set((state) => ({
+          dsa: {
+            ...state.dsa,
+            problems: state.dsa.problems.map((p) =>
               p.id === updated.id ? updated : p,
             ),
-          });
-        } catch (error) {
-          console.error("Error updating problem:", error);
-        }
+          },
+        }));
       },
-      // Selector for problems by topic
-      getProblemsByTopicId: (topicId: string) => {
-        try {
-          // Filter the main problems array to return only those belonging to the given topicId
-          return get().problems.filter(
-            (problem) => problem.topicId === topicId,
+      getDsaProblemsByTopicId: (topicId) =>
+        get().dsa.problems.filter((problem) => problem.topicId === topicId),
+      getProblemById: (problemId) =>
+        get().dsa.problems.find((problem) => problem.id === problemId),
+
+      // --- Core Category Actions ---
+      addCoreCategory: (category) => {
+        set((state) => ({
+          core: {
+            ...state.core,
+            categories: [...state.core.categories, category],
+          },
+        }));
+      },
+      deleteCoreCategory: (id) => {
+        set((state) => {
+          const remainingTopics = state.core.topics.filter(
+            (t) => t.categoryId !== id,
           );
-        } catch (error) {
-          console.error("Error getting problems by topic ID:", error);
-          return [];
-        }
+          return {
+            core: {
+              ...state.core,
+              categories: state.core.categories.filter((c) => c.id !== id),
+              topics: remainingTopics,
+              subtopics: state.core.subtopics.filter(
+                (st) => remainingTopics.some((t) => t.id === st.topicId), // Only keep subtopics whose parent topic remains
+              ),
+            },
+          };
+        });
       },
-      // Clear all data (for debugging/testing)
-      clearAll: () => {
-        try {
-          set({ topics: [], problems: [] });
-        } catch (error) {
-          console.error("Error clearing all data:", error);
-        }
+      updateCoreCategory: (updated) => {
+        set((state) => ({
+          core: {
+            ...state.core,
+            categories: state.core.categories.map((c) =>
+              c.id === updated.id ? updated : c,
+            ),
+          },
+        }));
+      },
+      getCoreCategoryById: (id) =>
+        get().core.categories.find((category) => category.id === id),
+
+      // --- Core Topic Actions ---
+      addCoreTopic: (topic) => {
+        set((state) => ({
+          core: { ...state.core, topics: [...state.core.topics, topic] },
+        }));
+      },
+      deleteCoreTopic: (id) => {
+        set((state) => ({
+          core: {
+            ...state.core,
+            topics: state.core.topics.filter((t) => t.id !== id),
+            subtopics: state.core.subtopics.filter((st) => st.topicId !== id),
+          },
+        }));
+      },
+      updateCoreTopic: (updated) => {
+        set((state) => ({
+          core: {
+            ...state.core,
+            topics: state.core.topics.map((t) =>
+              t.id === updated.id ? updated : t,
+            ),
+          },
+        }));
+      },
+      getCoreTopicsByCategoryId: (categoryId) =>
+        get().core.topics.filter((topic) => topic.categoryId === categoryId),
+      getCoreTopicById: (id) =>
+        get().core.topics.find((topic) => topic.id === id),
+
+      // --- Core Subtopic Actions ---
+      addCoreSubtopic: (subtopic) => {
+        set((state) => ({
+          core: {
+            ...state.core,
+            subtopics: [...state.core.subtopics, subtopic],
+          },
+        }));
+      },
+      deleteCoreSubtopic: (id) => {
+        set((state) => ({
+          core: {
+            ...state.core,
+            subtopics: state.core.subtopics.filter((st) => st.id !== id),
+          },
+        }));
+      },
+      updateCoreSubtopic: (updated) => {
+        set((state) => ({
+          core: {
+            ...state.core,
+            subtopics: state.core.subtopics.map((st) =>
+              st.id === updated.id ? updated : st,
+            ),
+          },
+        }));
+      },
+      getCoreSubtopicsByTopicId: (topicId) =>
+        get().core.subtopics.filter((subtopic) => subtopic.topicId === topicId),
+      getCoreSubtopicById: (id) =>
+        get().core.subtopics.find((subtopic) => subtopic.id === id),
+
+      // --- Interview Actions (New) ---
+      addInterviewQuestion: (question) => {
+        set((state) => ({
+          interview: {
+            ...state.interview,
+            questions: [...state.interview.questions, question],
+          },
+        }));
+      },
+      deleteInterviewQuestion: (id) => {
+        set((state) => ({
+          interview: {
+            ...state.interview,
+            questions: state.interview.questions.filter((q) => q.id !== id),
+          },
+        }));
+      },
+      updateInterviewQuestion: (updated) => {
+        set((state) => ({
+          interview: {
+            ...state.interview,
+            questions: state.interview.questions.map((q) =>
+              q.id === updated.id ? updated : q,
+            ),
+          },
+        }));
+      },
+      getInterviewQuestionById: (id) =>
+        get().interview.questions.find((q) => q.id === id),
+
+      // --- System Design Category Actions (New) ---
+      addSystemDesignCategory: (category) => {
+        set((state) => ({
+          systemDesign: {
+            ...state.systemDesign,
+            categories: [...state.systemDesign.categories, category],
+          },
+        }));
+      },
+      deleteSystemDesignCategory: (id) => {
+        set((state) => {
+          const remainingTopics = state.systemDesign.topics.filter(
+            (t) => t.categoryId !== id,
+          );
+          return {
+            systemDesign: {
+              ...state.systemDesign,
+              categories: state.systemDesign.categories.filter(
+                (c) => c.id !== id,
+              ),
+              topics: remainingTopics,
+              subtopics: state.systemDesign.subtopics.filter((st) =>
+                remainingTopics.some((t) => t.id === st.topicId),
+              ),
+            },
+          };
+        });
+      },
+      updateSystemDesignCategory: (updated) => {
+        set((state) => ({
+          systemDesign: {
+            ...state.systemDesign,
+            categories: state.systemDesign.categories.map((c) =>
+              c.id === updated.id ? updated : c,
+            ),
+          },
+        }));
+      },
+      getSystemDesignCategoryById: (id) =>
+        get().systemDesign.categories.find((category) => category.id === id),
+
+      // --- System Design Topic Actions (New) ---
+      addSystemDesignTopic: (topic) => {
+        set((state) => ({
+          systemDesign: {
+            ...state.systemDesign,
+            topics: [...state.systemDesign.topics, topic],
+          },
+        }));
+      },
+      deleteSystemDesignTopic: (id) => {
+        set((state) => ({
+          systemDesign: {
+            ...state.systemDesign,
+            topics: state.systemDesign.topics.filter((t) => t.id !== id),
+            subtopics: state.systemDesign.subtopics.filter(
+              (st) => st.topicId !== id,
+            ),
+          },
+        }));
+      },
+      updateSystemDesignTopic: (updated) => {
+        set((state) => ({
+          systemDesign: {
+            ...state.systemDesign,
+            topics: state.systemDesign.topics.map((t) =>
+              t.id === updated.id ? updated : t,
+            ),
+          },
+        }));
+      },
+      getSystemDesignTopicsByCategoryId: (categoryId) =>
+        get().systemDesign.topics.filter(
+          (topic) => topic.categoryId === categoryId,
+        ),
+      getSystemDesignTopicById: (id) =>
+        get().systemDesign.topics.find((topic) => topic.id === id),
+
+      // --- System Design Subtopic Actions (New) ---
+      addSystemDesignSubtopic: (subtopic) => {
+        set((state) => ({
+          systemDesign: {
+            ...state.systemDesign,
+            subtopics: [...state.systemDesign.subtopics, subtopic],
+          },
+        }));
+      },
+      deleteSystemDesignSubtopic: (id) => {
+        set((state) => ({
+          systemDesign: {
+            ...state.systemDesign,
+            subtopics: state.systemDesign.subtopics.filter(
+              (st) => st.id !== id,
+            ),
+          },
+        }));
+      },
+      updateSystemDesignSubtopic: (updated) => {
+        set((state) => ({
+          systemDesign: {
+            ...state.systemDesign,
+            subtopics: state.systemDesign.subtopics.map((st) =>
+              st.id === updated.id ? updated : st,
+            ),
+          },
+        }));
+      },
+      getSystemDesignSubtopicsByTopicId: (topicId) =>
+        get().systemDesign.subtopics.filter(
+          (subtopic) => subtopic.topicId === topicId,
+        ),
+      getSystemDesignSubtopicById: (id) =>
+        get().systemDesign.subtopics.find((subtopic) => subtopic.id === id),
+
+      // --- Global Actions ---
+      clearAllData: () => {
+        set(initialState);
+      },
+      importData: (data) => {
+        set(data);
       },
     }),
     {
-      name: "problem-store", // Name for AsyncStorage key
+      name: "app-learning-store",
       storage: {
         getItem: async (name) => {
           try {
             const value = await AsyncStorage.getItem(name);
             return value ? JSON.parse(value) : null;
           } catch (error) {
-            console.error("Error reading from storage:", error);
+            console.error("Zustand: Error reading from storage:", error);
             return null;
           }
         },
@@ -337,19 +412,17 @@ export const useProblemStore = create<ProblemStore>()(
           try {
             await AsyncStorage.setItem(name, JSON.stringify(value));
           } catch (error) {
-            console.error("Error writing to storage:", error);
+            console.error("Zustand: Error writing to storage:", error);
           }
         },
         removeItem: async (name) => {
           try {
             await AsyncStorage.removeItem(name);
           } catch (error) {
-            console.error("Error removing from storage:", error);
+            console.error("Zustand: Error removing from storage:", error);
           }
         },
       },
-      // You can add partialize to control what gets persisted if needed
-      // partialize: (state) => ({ topics: state.topics, problems: state.problems }),
     },
   ),
 );
