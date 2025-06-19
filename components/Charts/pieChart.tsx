@@ -1,15 +1,14 @@
 import { View, Text, Dimensions, Animated, StyleSheet } from "react-native";
 import { PieChart } from "react-native-chart-kit";
-import { useProblemStore } from "../../hooks/useStore";
+import { useAppStore } from "../../hooks/useStore";
 import { useEffect, useRef, useMemo } from "react";
-import { shallow } from "zustand/shallow";
 
 const screenWidth = Dimensions.get("window").width;
 const chartHeight = Math.floor(Dimensions.get("window").height / 3);
 
 export default function StatsChart() {
-  const problems = useProblemStore((state) => state.problems);
-  const topics = useProblemStore((state) => state.topics);
+  const problems = useAppStore((state) => state.dsa.problems);
+  const topics = useAppStore((state) => state.dsa.topics);
 
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { View, Text, StyleSheet, ScrollView } from "react-native";
 
 import CategoryListItem from "../../components/Preview/list";
-import { useProblemStore } from "../../hooks/useStore";
+import { useAppStore } from "../../hooks/useStore";
 import StatsChart from "../../components/Charts/pieChart";
 import BackgroundWrapper from "../../components/Background/backgroundWrapper";
 import CustomModal from "../../components/Modal/modal";
@@ -10,7 +10,8 @@ import DsaTopicForm from "../../components/Forms/DsaTopic";
 import { AddIcon, TrashIcon, BackIcon } from "../../components/ui/icons";
 
 export default function DsaTopics() {
-  const { topics, deleteTopic } = useProblemStore();
+  const topics = useAppStore((state) => state.dsa.topics);
+  const deleteTopic = useAppStore((state) => state.deleteDsaTopic);
 
   const [modalVisible, setModalVisible] = useState(false);
   const [deleteMode, setDeleteMode] = useState(false);
@@ -22,7 +23,7 @@ export default function DsaTopics() {
   }, [topics]);
 
   const handleDelete = (id: string) => deleteTopic(id);
-
+  console.log("Hello", topics);
   return (
     <BackgroundWrapper>
       <View style={styles.container}>

@@ -2,10 +2,10 @@ import { useState } from "react";
 import { View } from "react-native";
 import FormInput from "../ui/textInput";
 import ButtonGroup from "../ui/buttons";
-import { useProblemStore } from "../../hooks/useStore";
+import { useAppStore } from "../../hooks/useStore";
 
 export default function DsaTopicForm({ onSubmit }: { onSubmit: () => void }) {
-  const { addTopic } = useProblemStore();
+  const { addDsaTopic } = useAppStore();
 
   const [newTopicTitle, setNewTopicTitle] = useState("");
   const [newTopicSubtitle, setNewTopicSubtitle] = useState("");
@@ -13,7 +13,7 @@ export default function DsaTopicForm({ onSubmit }: { onSubmit: () => void }) {
   const handleAddTopic = () => {
     if (newTopicTitle.trim() === "") return;
 
-    addTopic({
+    addDsaTopic({
       id: Date.now().toString(),
       title: newTopicTitle.trim(),
       subtitle: newTopicSubtitle.trim() || "New topic",
