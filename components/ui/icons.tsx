@@ -1,6 +1,11 @@
 // /icons/index.tsx
 import React from "react";
-import { Ionicons, AntDesign, FontAwesome } from "@expo/vector-icons";
+import {
+  Ionicons,
+  AntDesign,
+  SimpleLineIcons,
+  FontAwesome,
+} from "@expo/vector-icons";
 import { TouchableOpacity, StyleSheet } from "react-native";
 
 type IconProps = {
@@ -12,6 +17,36 @@ type IconProps = {
 // Default values
 const defaultSize = 20;
 const defaultColor = "#868482";
+
+export const BlankCheckBoxIcon = ({
+  size = defaultSize,
+  color = defaultColor,
+  onPress,
+}: IconProps) => (
+  <TouchableOpacity onPress={onPress} activeOpacity={0.6} style={styles.common}>
+    <FontAwesome name="square-o" size={size} color={color} />
+  </TouchableOpacity>
+);
+
+export const CheckedCheckBoxIcon = ({
+  size = defaultSize,
+  color = defaultColor,
+  onPress,
+}: IconProps) => (
+  <TouchableOpacity onPress={onPress} activeOpacity={0.6} style={styles.common}>
+    <FontAwesome name="check-square-o" size={size} color={color} />
+  </TouchableOpacity>
+);
+
+export const OptionsVerticalIcon = ({
+  size = defaultSize,
+  color = defaultColor,
+  onPress,
+}: IconProps) => (
+  <TouchableOpacity onPress={onPress} activeOpacity={0.6} style={styles.common}>
+    <SimpleLineIcons name="options-vertical" size={size} color={color} />
+  </TouchableOpacity>
+);
 
 export const ExpandIcon = ({
   size = defaultSize,
