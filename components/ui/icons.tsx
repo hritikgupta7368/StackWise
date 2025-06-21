@@ -13,6 +13,26 @@ type IconProps = {
 const defaultSize = 20;
 const defaultColor = "#868482";
 
+export const ExpandIcon = ({
+  size = defaultSize,
+  color = defaultColor,
+  onPress,
+}: IconProps) => (
+  <TouchableOpacity onPress={onPress} activeOpacity={0.6} style={styles.common}>
+    <Ionicons name="chevron-down" size={size} color={color} />
+  </TouchableOpacity>
+);
+
+export const CollapseIcon = ({
+  size = defaultSize,
+  color = defaultColor,
+  onPress,
+}: IconProps) => (
+  <TouchableOpacity onPress={onPress} activeOpacity={0.6} style={styles.common}>
+    <Ionicons name="chevron-up" size={size} color={color} />
+  </TouchableOpacity>
+);
+
 export const CloseIcon = ({
   size = defaultSize,
   color = defaultColor,

@@ -4,6 +4,7 @@ import RadialProgressChart from "../../components/Charts/radialChart";
 import OverlappingCirclesCard from "../../components/LiveTiles/DsaTiles";
 import DummyTile from "../../components/LiveTiles/DummyTile";
 import { SettingsIcon } from "../../components/ui/icons";
+import { Link } from "expo-router";
 
 export default function Home() {
   const chartData1 = [
@@ -52,6 +53,9 @@ export default function Home() {
             <OverlappingCirclesCard />
             <DummyTile />
           </View>
+          <Link href="/test">
+            <Text>go to test</Text>
+          </Link>
         </ScrollView>
       </SafeAreaView>
     </BackgroundWrapper>

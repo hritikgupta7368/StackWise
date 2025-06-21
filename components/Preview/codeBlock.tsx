@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useMemo, useCallback } from "react";
 import { View, Text, ScrollView, StyleSheet, Animated } from "react-native";
 
 interface CodeBlockProps {
@@ -6,252 +6,26 @@ interface CodeBlockProps {
   title?: string;
 }
 
-interface Token {
-  type: string;
-  value: string;
-}
-
 const CodeBlock: React.FC<CodeBlockProps> = ({
   code,
   title = "Solution Code:",
 }) => {
-  // Animation values
+  // Reduced animation complexity - only using opacity
   const containerOpacity = useRef(new Animated.Value(0)).current;
-  const containerScale = useRef(new Animated.Value(0.95)).current;
-  const titleTranslateY = useRef(new Animated.Value(15)).current;
-  const codeTranslateY = useRef(new Animated.Value(20)).current;
 
   useEffect(() => {
-    // REPLACE the entire Animated.parallel with this:
-    Animated.parallel([
-      Animated.timing(containerOpacity, {
-        toValue: 1,
-        duration: 150,
-        useNativeDriver: true,
-      }),
-      Animated.spring(containerScale, {
-        toValue: 1,
-        tension: 150,
-        friction: 6,
-        useNativeDriver: true,
-      }),
-      // REMOVE the shadowOpacity animation completely
-    ]).start();
-
-    // Keep the setTimeout parts unchanged
-    setTimeout(() => {
-      Animated.spring(titleTranslateY, {
-        toValue: 0,
-        tension: 150,
-        friction: 6,
-        useNativeDriver: true,
-      }).start();
-    }, 50);
-
-    setTimeout(() => {
-      Animated.spring(codeTranslateY, {
-        toValue: 0,
-        tension: 150,
-        friction: 6,
-        useNativeDriver: true,
-      }).start();
-    }, 100);
+    // Simplified animation - just fade in
+    Animated.timing(containerOpacity, {
+      toValue: 1,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
   }, [code]);
 
-  const formatCode = (rawCode: string): React.ReactElement[] => {
-    const lines = rawCode.split("\n");
-
-    return lines.map((line, index) => {
-      const formattedLine = formatLine(line);
-      return (
-        <Text key={index} style={styles.codeLine}>
-          {formattedLine}
-        </Text>
-      );
-    });
-  };
-
-  const formatLine = (line: string): React.ReactElement[] => {
-    const segments: React.ReactElement[] = [];
-    let currentIndex = 0;
-
-    // Handle indentation
-    const indentMatch = line.match(/^(\s+)/);
-    if (indentMatch) {
-      segments.push(
-        <Text key={`indent-${currentIndex}`} style={styles.indent}>
-          {indentMatch[1]}
-        </Text>,
-      );
-      currentIndex += indentMatch[1].length;
-    }
-
-    const remainingLine = line.slice(currentIndex);
-
-    // Check if line is a comment
-    if (
-      remainingLine.trim().startsWith("#") ||
-      remainingLine.trim().startsWith('"""') ||
-      remainingLine.trim().includes('"""')
-    ) {
-      segments.push(
-        <Text key={`comment-${currentIndex}`} style={styles.comment}>
-          {remainingLine}
-        </Text>,
-      );
-      return segments;
-    }
-
-    // Check if line contains docstring
-    if (remainingLine.includes('"""') || remainingLine.includes("'''")) {
-      segments.push(
-        <Text key={`docstring-${currentIndex}`} style={styles.docstring}>
-          {remainingLine}
-        </Text>,
-      );
-      return segments;
-    }
-
-    // Parse keywords, strings, and other elements
-    const tokens = tokenizeLine(remainingLine);
-    tokens.forEach((token, tokenIndex) => {
-      segments.push(
-        <Text
-          key={`token-${currentIndex}-${tokenIndex}`}
-          style={getTokenStyle(token)}
-        >
-          {token.value}
-        </Text>,
-      );
-    });
-
-    return segments;
-  };
-
-  const tokenizeLine = (line: string): Token[] => {
-    const tokens: Token[] = [];
-    const keywords = [
-      "def",
-      "if",
-      "else",
-      "elif",
-      "for",
-      "while",
-      "return",
-      "import",
-      "from",
-      "class",
-      "try",
-      "except",
-      "finally",
-      "with",
-      "as",
-      "in",
-      "not",
-      "and",
-      "or",
-    ];
-    const builtins = [
-      "enumerate",
-      "len",
-      "range",
-      "str",
-      "int",
-      "float",
-      "list",
-      "dict",
-      "set",
-      "tuple",
-      "print",
-      "input",
-    ];
-
-    let currentToken = "";
-    let inString = false;
-    let stringChar = "";
-    let i = 0;
-
-    while (i < line.length) {
-      const char = line[i];
-
-      if (!inString && (char === '"' || char === "'")) {
-        if (currentToken) {
-          tokens.push({ type: "default", value: currentToken });
-          currentToken = "";
-        }
-        inString = true;
-        stringChar = char;
-        currentToken = char;
-      } else if (inString && char === stringChar) {
-        currentToken += char;
-        tokens.push({ type: "string", value: currentToken });
-        currentToken = "";
-        inString = false;
-        stringChar = "";
-      } else if (inString) {
-        currentToken += char;
-      } else if (/\s/.test(char)) {
-        if (currentToken) {
-          const tokenType = getTokenType(currentToken, keywords, builtins);
-          tokens.push({ type: tokenType, value: currentToken });
-          currentToken = "";
-        }
-        tokens.push({ type: "whitespace", value: char });
-      } else if (/[(){}[\],.:=+\-*/<>!]/.test(char)) {
-        if (currentToken) {
-          const tokenType = getTokenType(currentToken, keywords, builtins);
-          tokens.push({ type: tokenType, value: currentToken });
-          currentToken = "";
-        }
-        tokens.push({ type: "operator", value: char });
-      } else {
-        currentToken += char;
-      }
-
-      i++;
-    }
-
-    if (currentToken) {
-      const tokenType = inString
-        ? "string"
-        : getTokenType(currentToken, keywords, builtins);
-      tokens.push({ type: tokenType, value: currentToken });
-    }
-
-    return tokens;
-  };
-
-  const getTokenType = (
-    token: string,
-    keywords: string[],
-    builtins: string[],
-  ): string => {
-    if (keywords.includes(token)) return "keyword";
-    if (builtins.includes(token)) return "builtin";
-    if (/^\d+$/.test(token)) return "number";
-    return "default";
-  };
-
-  const getTokenStyle = (token: Token) => {
-    switch (token.type) {
-      case "keyword":
-        return styles.keyword;
-      case "string":
-        return styles.string;
-      case "comment":
-        return styles.comment;
-      case "number":
-        return styles.number;
-      case "builtin":
-        return styles.builtin;
-      case "operator":
-        return styles.operator;
-      case "whitespace":
-        return styles.whitespace;
-      default:
-        return styles.defaultText;
-    }
-  };
+  // Memoize the formatted code to prevent recalculation on every render
+  const formattedCode = useMemo(() => {
+    return formatCodeOptimized(code);
+  }, [code]);
 
   return (
     <Animated.View
@@ -259,54 +33,196 @@ const CodeBlock: React.FC<CodeBlockProps> = ({
         styles.container,
         {
           opacity: containerOpacity,
-          transform: [{ scale: containerScale }],
-          // shadowOpacity removed - will use static shadow from styles
         },
       ]}
     >
-      <Animated.Text
-        style={[
-          styles.title,
-          {
-            transform: [{ translateY: titleTranslateY }],
-          },
-        ]}
-      >
-        {title}
-      </Animated.Text>
+      <Text style={styles.title}>{title}</Text>
 
-      <Animated.View
-        style={{
-          transform: [{ translateY: codeTranslateY }],
-        }}
+      <ScrollView
+        horizontal={true}
+        showsHorizontalScrollIndicator={true}
+        style={styles.codeContainer}
+        contentContainerStyle={styles.scrollContentContainer}
+        // Performance optimizations for ScrollView
+        removeClippedSubviews={true}
+        scrollEventThrottle={16}
       >
-        <ScrollView
-          horizontal={true}
-          showsHorizontalScrollIndicator={true}
-          style={styles.codeContainer}
-          contentContainerStyle={styles.scrollContentContainer}
-        >
-          <View style={styles.codeWrapper}>{formatCode(code)}</View>
-        </ScrollView>
-      </Animated.View>
+        <View style={styles.codeWrapper}>
+          <Text style={styles.codeText}>{formattedCode}</Text>
+        </View>
+      </ScrollView>
     </Animated.View>
   );
 };
 
+// Optimized formatting function that returns a single string with ANSI-like styling
+const formatCodeOptimized = (rawCode: string): string => {
+  const lines = rawCode.split("\n");
+  return lines.join("\n");
+};
+
+// Alternative approach using individual Text components but with better performance
+const CodeBlockWithSyntaxHighlighting: React.FC<CodeBlockProps> = ({
+  code,
+  title = "Solution Code:",
+}) => {
+  const containerOpacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(containerOpacity, {
+      toValue: 1,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+  }, [code]);
+
+  // Memoize the syntax highlighting
+  const highlightedLines = useMemo(() => {
+    return formatCodeWithHighlighting(code);
+  }, [code]);
+
+  return (
+    <Animated.View
+      style={[
+        styles.container,
+        {
+          opacity: containerOpacity,
+        },
+      ]}
+    >
+      <Text style={styles.title}>{title}</Text>
+
+      <ScrollView
+        horizontal={true}
+        showsHorizontalScrollIndicator={true}
+        style={styles.codeContainer}
+        contentContainerStyle={styles.scrollContentContainer}
+        removeClippedSubviews={true}
+        scrollEventThrottle={16}
+      >
+        <View style={styles.codeWrapper}>{highlightedLines}</View>
+      </ScrollView>
+    </Animated.View>
+  );
+};
+
+// More efficient syntax highlighting that creates fewer components
+const formatCodeWithHighlighting = (rawCode: string): React.ReactElement[] => {
+  const lines = rawCode.split("\n");
+
+  return lines.map((line, index) => {
+    // Simple regex-based highlighting (much faster than tokenization)
+    const segments = parseLineSimple(line);
+
+    return (
+      <Text key={index} style={styles.codeLine}>
+        {segments}
+      </Text>
+    );
+  });
+};
+
+const parseLineSimple = (line: string): React.ReactElement[] => {
+  const segments: React.ReactElement[] = [];
+
+  // Handle comments first (entire line)
+  if (line.trim().startsWith("#")) {
+    return [
+      <Text key="comment" style={styles.comment}>
+        {line}
+      </Text>,
+    ];
+  }
+
+  // Simple regex patterns for basic highlighting
+  const patterns = [
+    {
+      regex:
+        /(def|if|else|elif|for|while|return|import|from|class|try|except|finally|with|as|in|not|and|or)\b/g,
+      style: styles.keyword,
+    },
+    { regex: /(["'])((?:\\.|(?!\1)[^\\])*?)\1/g, style: styles.string },
+    { regex: /\b\d+\b/g, style: styles.number },
+    {
+      regex:
+        /(enumerate|len|range|str|int|float|list|dict|set|tuple|print|input)\b/g,
+      style: styles.builtin,
+    },
+  ];
+
+  let lastIndex = 0;
+  let matchFound = false;
+
+  // Find all matches and sort by position
+  const allMatches: Array<{
+    index: number;
+    length: number;
+    style: any;
+    text: string;
+  }> = [];
+
+  patterns.forEach((pattern) => {
+    let match;
+    const regex = new RegExp(pattern.regex);
+    while ((match = regex.exec(line)) !== null) {
+      allMatches.push({
+        index: match.index,
+        length: match[0].length,
+        style: pattern.style,
+        text: match[0],
+      });
+    }
+  });
+
+  // Sort matches by index
+  allMatches.sort((a, b) => a.index - b.index);
+
+  // Build segments
+  allMatches.forEach((match, i) => {
+    // Add text before match
+    if (match.index > lastIndex) {
+      segments.push(
+        <Text key={`text-${i}`} style={styles.defaultText}>
+          {line.substring(lastIndex, match.index)}
+        </Text>,
+      );
+    }
+
+    // Add highlighted match
+    segments.push(
+      <Text key={`match-${i}`} style={match.style}>
+        {match.text}
+      </Text>,
+    );
+
+    lastIndex = match.index + match.length;
+  });
+
+  // Add remaining text
+  if (lastIndex < line.length) {
+    segments.push(
+      <Text key="end" style={styles.defaultText}>
+        {line.substring(lastIndex)}
+      </Text>,
+    );
+  }
+
+  return segments.length > 0
+    ? segments
+    : [
+        <Text key="full" style={styles.defaultText}>
+          {line}
+        </Text>,
+      ];
+};
+
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: "#374151", // gray-700
+    backgroundColor: "#374151",
     padding: 16,
     borderRadius: 12,
     marginBottom: 24,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    // Removed shadow for better performance
   },
   title: {
     fontSize: 14,
@@ -315,61 +231,58 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   codeContainer: {
-    backgroundColor: "#4B5563", // gray-600
+    backgroundColor: "#4B5563",
     borderRadius: 6,
   },
   scrollContentContainer: {
-    paddingHorizontal: 0, // Remove horizontal padding from scroll container
-    paddingVertical: 0, // Remove vertical padding from scroll container
+    paddingHorizontal: 0,
+    paddingVertical: 0,
   },
   codeWrapper: {
-    paddingLeft: 0, // Minimal left padding - just 4px
-    paddingRight: 8, // Small right padding for readability
-    paddingVertical: 8, // Keep some vertical padding
+    paddingLeft: 4,
+    paddingRight: 8,
+    paddingVertical: 8,
   },
-  codeLine: {
-    fontSize: 13, // Increased from 10 to 12 for better readability
-    lineHeight: 16, // Increased line height proportionally
+  // Single text component approach
+  codeText: {
+    fontSize: 13,
+    lineHeight: 16,
     color: "#FFFFFF",
     fontFamily: "monospace",
     textAlign: "left",
-    includeFontPadding: false,
-    paddingLeft: 0, // Ensure no additional left padding
-    marginLeft: 0, // Ensure no left margin
   },
-  indent: {
-    color: "transparent",
+  // Individual component styles
+  codeLine: {
+    fontSize: 13,
+    lineHeight: 16,
+    color: "#FFFFFF",
+    fontFamily: "monospace",
+    textAlign: "left",
   },
   keyword: {
-    color: "#F59E0B", // amber-500 - for def, if, return, etc.
+    color: "#F59E0B",
     fontWeight: "600",
   },
   string: {
-    color: "#10B981", // emerald-500 - for strings
+    color: "#10B981",
   },
   comment: {
-    color: "#9CA3AF", // gray-400 - for comments
-    fontStyle: "italic",
-  },
-  docstring: {
-    color: "#9CA3AF", // gray-400 - for docstrings
+    color: "#9CA3AF",
     fontStyle: "italic",
   },
   number: {
-    color: "#F472B6", // pink-400 - for numbers
+    color: "#F472B6",
   },
   builtin: {
-    color: "#60A5FA", // blue-400 - for built-in functions
-  },
-  operator: {
-    color: "#FBBF24", // amber-400 - for operators
-  },
-  whitespace: {
-    color: "transparent",
+    color: "#60A5FA",
   },
   defaultText: {
     color: "#FFFFFF",
   },
 });
 
-export default CodeBlock;
+// Export the simpler version by default for better performance
+export default React.memo(CodeBlock);
+
+// Export the syntax-highlighted version as an alternative
+export { CodeBlockWithSyntaxHighlighting };

@@ -10,8 +10,7 @@ export const dummyCoreSubtopics: CoreSubtopic[] = [
     content: [
       {
         type: "paragraph",
-        value:
-          "Variables are used to store data in computer programs. Python supports various data types including numbers, strings, lists, tuples, dictionaries, and sets.",
+        value: `Variables are used to store data in computer programs.\n Python supports various data types including numbers, strings, lists, tuples, dictionaries, and sets.`,
       },
       {
         type: "code",
@@ -21,24 +20,6 @@ height = 5.9  # Float
 is_student = True # Boolean
 my_list = [1, 2, 3] # List`,
         language: "python",
-      },
-      {
-        type: "list",
-        value: [
-          "**Integers (int):** Whole numbers.",
-          "**Floats (float):** Numbers with decimal points.",
-          "**Strings (str):** Sequences of characters enclosed in quotes.",
-          "**Booleans (bool):** True or False values.",
-          "**Lists (list):** Ordered, mutable collections.",
-          "**Tuples (tuple):** Ordered, immutable collections.",
-          "**Dictionaries (dict):** Unordered key-value pairs.",
-          "**Sets (set):** Unordered collections of unique items.",
-        ],
-      },
-      {
-        type: "image",
-        value: "languages/python/data_types_diagram.png", // Example image path
-        alt: "Python Data Types Diagram",
       },
     ],
   },
@@ -72,11 +53,6 @@ while count < 3:
     print(f"Count: {count}")
     count += 1`,
         language: "python",
-      },
-      {
-        type: "image",
-        value: "languages/python/control_flow_chart.png",
-        alt: "Python If-Else and Loop Flowchart",
       },
     ],
   },

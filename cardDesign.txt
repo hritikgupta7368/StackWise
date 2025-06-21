@@ -1,0 +1,5 @@
+Colors
+Background color : #1d1d1f
+card Background color : #3e3d40
+card Text Title color : white
+card Paragraph color : white

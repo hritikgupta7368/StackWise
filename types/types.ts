@@ -7,8 +7,7 @@
 export type ContentElement =
   | { type: "paragraph"; value: string }
   | { type: "code"; value: string; language?: string }
-  | { type: "image"; value: string; alt?: string }
-  | { type: "list"; value: string[] };
+  | { type: "image"; value: string; alt?: string };
 
 // --- DSA Domain Types ---
 export type SimilarProblem = {
