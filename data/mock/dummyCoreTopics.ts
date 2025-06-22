@@ -17,6 +17,13 @@ export const dummyCoreTopics: CoreTopic[] = [
       "The programming language for the web, enabling interactive and dynamic content.",
   },
   {
+    id: "lang-kotlin",
+    categoryId: "cat-1", // Belongs to Programming Languages
+    name: "Kotlin",
+    description:
+      "The programming language for the web, enabling interactive and dynamic content.",
+  },
+  {
     id: "frame-rn",
     categoryId: "cat-2", // Belongs to Web Frameworks
     name: "React Native",
@@ -29,5 +36,33 @@ export const dummyCoreTopics: CoreTopic[] = [
     name: "Kotlin",
     description:
       "A modern, concise, and safe programming language for Android development.",
+  },
+  {
+    id: "sec-ssl",
+    categoryId: "cat-8", // Belongs to Security
+    name: "SSL/TLS",
+    description:
+      "Secure Socket Layer/Transport Layer Security protocols for encrypting data.",
+  },
+  {
+    id: "sec-owasp",
+    categoryId: "cat-8", // Belongs to Security
+    name: "OWASP",
+    description:
+      "Open Web Application Security Project guidelines for secure software development.",
+  },
+  {
+    id: "sec-crypto",
+    categoryId: "cat-8", // Belongs to Security
+    name: "Cryptography",
+    description:
+      "The study of techniques for secure communication in the presence of adversaries.",
+  },
+  {
+    id: "sec-privacy",
+    categoryId: "cat-8", // Belongs to Security
+    name: "Privacy",
+    description:
+      "The protection of personal information and data from unauthorized access.",
   },
 ];

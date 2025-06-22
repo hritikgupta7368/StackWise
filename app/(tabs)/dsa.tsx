@@ -1,104 +1,119 @@
-import { useEffect, useState } from "react";
-import { View, Text, StyleSheet, ScrollView } from "react-native";
-
+import React, { useEffect, useState, useCallback } from "react";
+import { View, Text, StyleSheet, ScrollView, SafeAreaView } from "react-native";
+import BackgroundWrapper from "../../components/Background/backgroundWrapper";
 import CategoryListItem from "../../components/Preview/list";
 import { useAppStore } from "../../hooks/useStore";
+import { useHeaderState } from "@/components/Header/header";
+import Header from "@/components/Header/header";
 import StatsChart from "../../components/Charts/pieChart";
-import BackgroundWrapper from "../../components/Background/backgroundWrapper";
-import CustomModal from "../../components/Modal/modal";
-import DsaTopicForm from "../../components/Forms/DsaTopic";
-import { AddIcon, TrashIcon, BackIcon } from "../../components/ui/icons";
 
 export default function DsaTopics() {
-  const topics = useAppStore((state) => state.dsa.topics);
-  const deleteTopic = useAppStore((state) => state.deleteDsaTopic);
+  const {
+    dsa: { topics },
+    addDsaTopic,
+    deleteDsaTopic,
+    updateDsaTopic,
+    getDsaTopicById,
+  } = useAppStore();
 
-  const [modalVisible, setModalVisible] = useState(false);
-  const [deleteMode, setDeleteMode] = useState(false);
-  const [delayedTopics, setDelayedTopics] = useState(topics);
+  // ✅ Rename
+  const handleRename = useCallback(
+    (id: string, newTitle: string) => {
+      const topic = getDsaTopicById(id);
+      if (topic && topic.title !== newTitle) {
+        updateDsaTopic({ ...topic, title: newTitle });
+      }
+    },
+    [getDsaTopicById, updateDsaTopic],
+  );
 
-  useEffect(() => {
-    const timeout = setTimeout(() => setDelayedTopics(topics), 300);
-    return () => clearTimeout(timeout);
-  }, [topics]);
+  // Get title for rename modal
+  const getTitleById = useCallback(
+    (id: string) => {
+      return getDsaTopicById(id)?.title || "";
+    },
+    [getDsaTopicById],
+  );
 
-  const handleDelete = (id: string) => deleteTopic(id);
+  // Add handler
+  const handleAdd = useCallback(
+    (title: string) => {
+      const newTopic = {
+        id: Date.now().toString(),
+        title,
+        subtitle: "",
+      };
+      addDsaTopic(newTopic);
+    },
+    [addDsaTopic],
+  );
+
+  // Delete handler
+  const handleDelete = useCallback(
+    (ids: string[]) => {
+      ids.forEach(deleteDsaTopic);
+    },
+    [deleteDsaTopic],
+  );
+
+  const { headerState, headerControls } = useHeaderState(
+    getTitleById,
+    handleRename,
+  );
 
   return (
     <BackgroundWrapper>
-      <View style={styles.container}>
+      <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
+        <Header
+          title="DSA Topics"
+          actions={{
+            onAdd: handleAdd,
+            onDelete: handleDelete,
+          }}
+          addContextLabel="DSA Topic"
+          renameContextLabel="Topic"
+          headerControls={headerControls}
+          headerState={headerState}
+        />
         <ScrollView
-          style={{ flex: 1 }}
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
         >
-          {delayedTopics.length > 0 && <StatsChart />}
-
-          <View style={styles.header}>
-            {deleteMode ? (
-              <BackIcon onPress={() => setDeleteMode(false)} />
-            ) : (
-              <>
-                <AddIcon
-                  onPress={() => setModalVisible(true)}
-                  color="white"
-                  size={20}
-                />
-                <TrashIcon onPress={() => setDeleteMode(true)} />
-              </>
-            )}
-          </View>
-
-          {modalVisible && (
-            <CustomModal
-              visible={modalVisible}
-              onClose={() => setModalVisible(false)}
-              title="Add new Topic"
-            >
-              <DsaTopicForm onSubmit={() => setModalVisible(false)} />
-            </CustomModal>
-          )}
-
-          {delayedTopics.length === 0 ? (
+          {topics.length > 0 && <StatsChart />}
+          {topics.length === 0 ? (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyText}>
-                No topics yet. Tap + to add one!
-              </Text>
+              <Text style={styles.emptyText}>No topics yet. Tap + to add.</Text>
             </View>
           ) : (
-            delayedTopics.map((topic, index) => (
+            topics.map((topic, index) => (
               <CategoryListItem
                 key={topic.id}
                 index={index}
                 category={topic}
                 pathLink="/dsa/[topic]"
-                deleteMode={deleteMode}
-                onDelete={handleDelete}
+                deleteMode={headerState.deleteMode}
+                isSelected={headerState.selectedToDelete.has(topic.id)}
+                onDelete={() => headerState.toggleDeleteSelection(topic.id)}
+                onTap={
+                  headerState.renameMode
+                    ? () => headerState.handleCardTap(topic.id)
+                    : undefined // ← don’t pass if not rename mode
+                }
               />
             ))
           )}
         </ScrollView>
-      </View>
+      </SafeAreaView>
     </BackgroundWrapper>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    marginTop: 35,
-  },
   scroll: {
     flexGrow: 1,
-    padding: 16,
-    paddingBottom: 110,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginVertical: 20,
     paddingHorizontal: 16,
+    paddingBottom: 110, // leave space for modal/fab/etc.
+    paddingTop: 12,
   },
   emptyState: {
     marginTop: 100,
@@ -106,6 +121,6 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: "#555",
+    color: "#888",
   },
 });

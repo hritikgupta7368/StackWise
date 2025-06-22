@@ -1,15 +1,14 @@
 import React, { useEffect, useRef } from "react";
 import { View, Text, StyleSheet, Animated } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { useProblemStats } from "@/utils/problemStats";
 
 const OverlappingCirclesCard = ({
-  easy = 850,
-  medium = 60,
-  hard = 40,
   cardWidth = 200,
   cardHeight = 200,
   title = "",
 }) => {
+  const { easy, medium, hard } = useProblemStats();
   // Animation values
   const scaleAnim1 = useRef(new Animated.Value(0)).current;
   const scaleAnim2 = useRef(new Animated.Value(0)).current;

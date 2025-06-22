@@ -1,5 +1,5 @@
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import { Link } from "expo-router";
+import { useRouter } from "expo-router";
 import { FontAwesome } from "@expo/vector-icons";
 import { useMemo, useCallback } from "react";
 
@@ -14,6 +14,8 @@ type Props = {
   pathLink: string;
   deleteMode?: boolean;
   onDelete?: (id: string) => void;
+  onTap?: () => void;
+  isSelected?: boolean;
   index: number;
 };
 
@@ -34,8 +36,11 @@ export default function CategoryListItem({
   pathLink,
   deleteMode = false,
   onDelete,
+  onTap,
+  isSelected = false,
   index,
 }: Props) {
+  const router = useRouter();
   const colorSet = useMemo(
     () => softColors[index % softColors.length],
     [index],
@@ -45,8 +50,37 @@ export default function CategoryListItem({
     onDelete?.(category.id);
   }, [onDelete, category.id]);
 
+  const containerStyle = useMemo(() => {
+    const base = [styles.categoryListItem];
+    if (deleteMode && isSelected) {
+      base.push({
+        borderColor: colorSet.icon,
+      });
+    }
+    return base;
+  }, [deleteMode, isSelected, colorSet.icon]);
+
+  const handlePress = useCallback(() => {
+    console.log("handlePress called");
+
+    if (typeof onTap === "function") {
+      const result = onTap();
+      console.log("onTap() returned:", result);
+
+      // If onTap returns true, exit early (user handled the tap)
+      if (result === true) {
+        console.log("onTap handled the action. Skipping navigation.");
+        return;
+      }
+    }
+
+    // Default navigation
+    console.log("Navigating to:", `/dsa/${category.id}`);
+    router.push(`/dsa/${category.id}`);
+  }, [onTap, category.id, router]);
+
   const content = (
-    <View style={[styles.categoryListItem]}>
+    <View style={containerStyle}>
       <View style={styles.categoryListItemContent}>
         <View>
           <Text
@@ -60,26 +94,26 @@ export default function CategoryListItem({
             {category.subtitle}
           </Text>
         </View>
-        <FontAwesome
-          name={deleteMode ? "trash" : "angle-right"}
-          size={24}
-          color={colorSet.icon}
-        />
+        <FontAwesome name={"angle-right"} size={24} color={colorSet.icon} />
       </View>
     </View>
   );
 
+  // Delete Mode
   if (deleteMode) {
     return (
       <TouchableOpacity onPress={handleDelete}>{content}</TouchableOpacity>
     );
   }
 
-  return (
-    <Link href={{ pathname: pathLink, params: { topic: category.id } }} asChild>
-      <TouchableOpacity>{content}</TouchableOpacity>
-    </Link>
-  );
+  // Rename Mode
+  if (onTap) {
+    return <TouchableOpacity onPress={onTap}>{content}</TouchableOpacity>;
+  }
+
+  // Default navigation mode
+
+  return <TouchableOpacity onPress={handlePress}>{content}</TouchableOpacity>;
 }
 
 const styles = StyleSheet.create({
@@ -87,6 +121,8 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 16,
     marginVertical: 8,
+    borderWidth: 1,
+    borderColor: "transparent",
     backgroundColor: "black",
   },
   categoryListItemContent: {

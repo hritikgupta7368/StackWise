@@ -1,0 +1,76 @@
+Header section code
+
+I’m building a modular React Native app using Expo Router and want a reusable Header component to be used across all screens. This header should be fully configurable via props, allowing customization of the title, backgroundColor, height, and both paddingHorizontal and paddingVertical. The left side of the header should show a large title, and the right side should display a "More" icon (like three vertical dots). When the user taps this icon, a popup menu should appear with three options: Add, Rename, and Delete. Each of these options triggers a specific interaction flow that is context-aware and controlled by the current route, since the type of cards rendered varies between routes (e.g., DSA topics, Core subtopics, System Design categories, Interview questions, etc.).
+
+When the user selects Add, a modal should appear immediately. The modal content (form fields, labels, submission logic) should be customizable per route, since each card type may require different input fields. On submission, the new item should be added to the current route's card list using the appropriate function from the useAppStore Zustand hook. For example, if on a DSA route adding a new topic, the modal should call addDsaTopic; if adding a core subtopic, it should call addCoreSubtopic, and so on.
+
+When the user selects Rename, the UI should transition into a rename mode. In this state, the header title should change to "Select a card to rename", and the list of cards should enter a single-select mode — allowing the user to tap on a single card. Once a card is selected, a modal should appear pre-filled with the current name (or title) of the card in a text input. The user can modify the name and submit the form to update it. The appropriate update function from useAppStore must be called: for instance, updateDsaTopic, updateCoreTopic, updateSystemDesignSubtopic, or updateInterviewQuestion depending on the context. During rename mode, regular action buttons like edit icons inside cards should be hidden to avoid UI conflicts. Importantly, there must be a visible and intuitive option to exit rename mode without making changes — such as a "Cancel" button either in the modal or as part of the header — which restores the original header title and reverts the cards to normal display.
+
+When Delete is selected, the UI should switch to a multi-select delete mode. The header title should update to "Select cards to delete", and each card in the list should display a checkbox. The user can select multiple cards, and once one or more are selected, a delete confirmation button should appear (either in the header, as a floating action button, or in a footer bar). Pressing confirm will call the appropriate deletion function from the Zustand store — for example, deleteCoreSubtopic, deleteSystemDesignTopic, or deleteProblem, depending on the list being shown. As with rename, there should also be a clearly visible cancel action to exit delete mode and reset the UI back to its default state.
+
+The Header component itself must not handle the modal logic or card rendering directly. Instead, it should provide callback triggers (onAdd, onRename, onDelete) that the parent screen uses to control those behaviors. This separation ensures flexibility and makes the header reusable across screens with different card types. The parent screen will integrate the actual modal implementations, conditional card rendering (normal, rename mode, delete mode), and interactions with the Zustand store.
+
+The global useAppStore hook is used to manage all persistent data using Zustand with AsyncStorage. The store supports all major CRUD actions. For example, addDsaTopic, addProblem, addInterviewQuestion, addSystemDesignSubtopic, and their corresponding deleteX, updateX, and getXById variants are all exposed. These are structured around your app's main domains: DSA (topics, problems), Core (categories, topics, subtopics), Interview (questions), and System Design (categories, topics, subtopics). This hook must be used in modals and UI actions to mutate state across routes, ensuring all card operations are properly persisted and rendered in sync. The component and route logic must be designed to work with this centralized system, support toggling between modes (normal, rename, delete), and provide clean UX transitions, ensuring that each card list behaves independently yet consistently under the shared header experience.
+
+Card Reodering logic
+
+✅ Step-by-Step Implementation of Card Reordering
+📦 Step 1: Install the Library
+If not installed yet, run:
+
+sh
+Copy
+Edit
+npx expo install react-native-draggable-flatlist
+📦 Step 2: Replace Flat Card List with DraggableFlatList
+In your Header component (or wherever you render the cards), replace your map()-based card rendering with this:
+
+🔁 1. Import DraggableFlatList
+tsx
+Copy
+Edit
+import DraggableFlatList, {
+  RenderItemParams,
+} from "react-native-draggable-flatlist";
+🔁 2. Replace the View that lists cards with this component:
+tsx
+Copy
+Edit
+<DraggableFlatList
+  data={data}
+  keyExtractor={(item) => item.id}
+  onDragEnd={({ data: newData }) => {
+    setData(newData); // Persist rearranged order
+  }}
+  renderItem={({ item, drag, isActive }: RenderItemParams<Card>) => {
+    const isSelected = selectedToDelete.has(item.id);
+
+    return (
+      <TouchableOpacity
+        style={[
+          styles.card,
+          isActive && { backgroundColor: "#444" },
+          deleteMode && isSelected && { borderColor: "#ff5c5c", borderWidth: 1 },
+        ]}
+        onLongPress={drag}
+        onPress={() => {
+          if (renameMode) handleCardTap(item);
+          else if (deleteMode) toggleDeleteSelection(item.id);
+        }}
+      >
+        <Text style={styles.cardText}>{item.title}</Text>
+        {deleteMode && (
+          <View style={styles.checkbox}>
+            <Text style={{ color: "#fff" }}>{isSelected ? "✓" : "○"}</Text>
+          </View>
+        )}
+      </TouchableOpacity>
+    );
+  }}
+/>
+🧠 Notes on Behavior
+Feature	Behavior
+Long press card	Starts dragging
+Drag and release	Reorders the list and persists new order via setData()
+Works with modes	You can still rename or delete during drag if you disable drag in those states (optional enhancement)
+Active card style	You can highlight the card while it's being dragged (isActive)

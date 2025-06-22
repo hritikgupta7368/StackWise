@@ -215,7 +215,7 @@ export default function CorePage() {
                 style={styles.headerIcon}
               />
               <OptionsVerticalIcon
-                size={26}
+                size={20}
                 onPress={handleMoreOptions}
                 color="white"
                 // style={styles.headerIcon}
