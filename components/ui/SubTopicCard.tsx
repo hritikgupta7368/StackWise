@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { View, Text, StyleSheet, Pressable, Animated } from "react-native";
+import { View, Text, StyleSheet, Pressable } from "react-native";
 import InputOptionsCard from "@/components/Renderer/inputOptionsCard";
 import ContentRenderer from "@/components/Renderer/ContentRendereCore";
 import {
@@ -134,12 +134,6 @@ const SubTopicCard = React.memo<SubTopicCardProps>(
             selectionMode === "delete" && styles.selectableHeader,
             selectionMode === "rename" && styles.renameHeader,
           ]}
-          // Add haptic feedback for better UX
-          android_ripple={
-            selectionMode !== "none"
-              ? { color: "rgba(255, 255, 255, 0.1)" }
-              : undefined
-          }
         >
           {headerContent}
         </Pressable>

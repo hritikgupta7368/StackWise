@@ -17,11 +17,9 @@ export const dummyInterviewQuestions: InterviewQuestion[] = [
           "NoSQL databases are non-relational, providing flexible schemas, horizontal scalability, and are suitable for large volumes of unstructured data. They come in various types like document, key-value, column-family, and graph.",
       },
       {
-        type: "list",
-        value: [
-          "**SQL:** Relational, rigid schema, vertical scaling, ACID properties, good for complex joins.",
-          "**NoSQL:** Non-relational, dynamic schema, horizontal scaling, BASE properties, good for big data/high traffic.",
-        ],
+        type: "paragraph",
+        value:
+          "**SQL:** Relational, rigid schema, vertical scaling, ACID properties, good for complex joins.**NoSQL:** Non-relational, dynamic schema, horizontal scaling, BASE properties, good for big data/high traffic.",
       },
     ],
   },
@@ -37,17 +35,6 @@ export const dummyInterviewQuestions: InterviewQuestion[] = [
       {
         type: "paragraph",
         value: "Key principles include:",
-      },
-      {
-        type: "list",
-        value: [
-          "**Stateless:** Each request from client to server must contain all the information needed to understand the request.",
-          "**Client-Server:** Separation of concerns, client handles UI, server handles data storage and processing.",
-          "**Cacheable:** Responses must explicitly or implicitly define themselves as cacheable or non-cacheable.",
-          "**Layered System:** A client cannot ordinarily tell whether it is connected directly to the end server, or to an intermediary.",
-          "**Uniform Interface:** Simplifies and decouples the architecture, allowing each part to evolve independently.",
-          "**Code on Demand (Optional):** Servers can temporarily extend or customize the functionality of a client by transferring executable code.",
-        ],
       },
     ],
   },

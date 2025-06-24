@@ -84,7 +84,7 @@ const PopupMenu: React.FC<PopupMenuProps> = memo(
         <Animated.View
           entering={FadeIn.duration(100)}
           exiting={FadeOut.duration(100)}
-          style={[Pstyles.menuContainer, { top: 70, right: 20 }]}
+          style={[Pstyles.menuContainer, { top: 90, right: 30 }]}
         >
           <Animated.View style={animatedStyle}>{renderedOptions}</Animated.View>
         </Animated.View>

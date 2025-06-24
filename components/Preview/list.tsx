@@ -1,5 +1,11 @@
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import { useRouter } from "expo-router";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Pressable,
+} from "react-native";
+import { Link } from "expo-router";
 import { FontAwesome } from "@expo/vector-icons";
 import { useMemo, useCallback } from "react";
 
@@ -40,7 +46,6 @@ export default function CategoryListItem({
   isSelected = false,
   index,
 }: Props) {
-  const router = useRouter();
   const colorSet = useMemo(
     () => softColors[index % softColors.length],
     [index],
@@ -60,60 +65,64 @@ export default function CategoryListItem({
     return base;
   }, [deleteMode, isSelected, colorSet.icon]);
 
-  const handlePress = useCallback(() => {
-    console.log("handlePress called");
-
-    if (typeof onTap === "function") {
-      const result = onTap();
-      console.log("onTap() returned:", result);
-
-      // If onTap returns true, exit early (user handled the tap)
-      if (result === true) {
-        console.log("onTap handled the action. Skipping navigation.");
-        return;
-      }
-    }
-
-    // Default navigation
-    console.log("Navigating to:", `/dsa/${category.id}`);
-    router.push(`/dsa/${category.id}`);
-  }, [onTap, category.id, router]);
-
   const content = (
-    <View style={containerStyle}>
-      <View style={styles.categoryListItemContent}>
-        <View>
-          <Text
-            style={[styles.categoryListItemTitle, { color: colorSet.icon }]}
-          >
-            {category.title}
-          </Text>
-          <Text
-            style={[styles.categoryListItemSubtitle, { color: colorSet.icon }]}
-          >
-            {category.subtitle}
-          </Text>
-        </View>
-        <FontAwesome name={"angle-right"} size={24} color={colorSet.icon} />
+    <View style={styles.categoryListItemContent}>
+      <View>
+        <Text style={[styles.categoryListItemTitle, { color: colorSet.icon }]}>
+          {category.title}
+        </Text>
+        <Text
+          style={[styles.categoryListItemSubtitle, { color: colorSet.icon }]}
+        >
+          {category.subtitle}
+        </Text>
       </View>
+      <FontAwesome name="angle-right" size={24} color={colorSet.icon} />
     </View>
   );
 
-  // Delete Mode
   if (deleteMode) {
     return (
-      <TouchableOpacity onPress={handleDelete}>{content}</TouchableOpacity>
+      <TouchableOpacity onPress={handleDelete} style={containerStyle}>
+        {content}
+      </TouchableOpacity>
     );
   }
 
-  // Rename Mode
   if (onTap) {
-    return <TouchableOpacity onPress={onTap}>{content}</TouchableOpacity>;
+    return (
+      <TouchableOpacity onPress={onTap} style={containerStyle}>
+        {content}
+      </TouchableOpacity>
+    );
   }
 
-  // Default navigation mode
-
-  return <TouchableOpacity onPress={handlePress}>{content}</TouchableOpacity>;
+  return (
+    <Link href={{ pathname: pathLink, params: { topic: category.id } }} asChild>
+      <Pressable style={styles.categoryListItem}>
+        <View style={styles.categoryListItemContent}>
+          <View style={{ flex: 1 }}>
+            <Text
+              style={[styles.categoryListItemTitle, { color: colorSet.icon }]}
+            >
+              {category.title}
+            </Text>
+            <Text
+              style={[
+                styles.categoryListItemSubtitle,
+                { color: colorSet.icon },
+              ]}
+            >
+              {category.subtitle}
+            </Text>
+          </View>
+          <View style={{ paddingTop: 2 }}>
+            <FontAwesome name={"angle-right"} size={24} color={colorSet.icon} />
+          </View>
+        </View>
+      </Pressable>
+    </Link>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -124,18 +133,32 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "transparent",
     backgroundColor: "black",
+
+    // Ensure it contains overflowing children
+    overflow: "hidden",
   },
+
   categoryListItemContent: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
+
   categoryListItemTitle: {
     fontSize: 18,
     fontWeight: "bold",
+    flexWrap: "wrap",
+    lineHeight: 22,
+
+    width: "90%",
   },
+
   categoryListItemSubtitle: {
     fontSize: 14,
     opacity: 0.8,
+    flexWrap: "wrap",
+    lineHeight: 18,
+
+    width: "90%",
   },
 });

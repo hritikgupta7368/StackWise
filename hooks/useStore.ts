@@ -16,10 +16,12 @@
  *   - Data persistence with AsyncStorage via Zustand middleware
  *   - Supports toggling mock data via `USE_MOCK_DATA`
  *   - Global utilities: clear all data, import/export entire state
+ *   - Enhanced with Immer for better performance and cleaner code
  *
  * 🔸 Tech:
- *   - Zustand (with `persist` middleware)
+ *   - Zustand (with `persist` and `immer` middleware)
  *   - AsyncStorage for local data persistence
+ *   - Immer for immutable state updates
  *
  * Usage:
  *   - Import `useAppStore()` in any component to access or modify state
@@ -28,6 +30,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { immer } from "zustand/middleware/immer";
 import {
   AppState,
   AppActions,
@@ -80,63 +83,57 @@ const initialState: AppState = {
   },
 };
 
-// --- Zustand Store Creation ---
+// --- Zustand Store Creation with Immer ---
 export const useAppStore = create<AppStore>()(
   persist(
-    (set, get) => ({
+    immer((set, get) => ({
       ...initialState, // Initialize store with the defined initial state
 
       // --- DSA Topic Actions ---
       addDsaTopic: (topic) => {
-        set((state) => ({
-          dsa: { ...state.dsa, topics: [...state.dsa.topics, topic] },
-        }));
+        set((state) => {
+          state.dsa.topics.push(topic);
+        });
       },
       deleteDsaTopic: (id) => {
-        set((state) => ({
-          dsa: {
-            ...state.dsa,
-            topics: state.dsa.topics.filter((t) => t.id !== id),
-            problems: state.dsa.problems.filter((p) => p.topicId !== id),
-          },
-        }));
+        set((state) => {
+          state.dsa.topics = state.dsa.topics.filter((t) => t.id !== id);
+          state.dsa.problems = state.dsa.problems.filter(
+            (p) => p.topicId !== id,
+          );
+        });
       },
       updateDsaTopic: (updated) => {
-        set((state) => ({
-          dsa: {
-            ...state.dsa,
-            topics: state.dsa.topics.map((t) =>
-              t.id === updated.id ? updated : t,
-            ),
-          },
-        }));
+        set((state) => {
+          const index = state.dsa.topics.findIndex((t) => t.id === updated.id);
+          if (index !== -1) {
+            state.dsa.topics[index] = updated;
+          }
+        });
       },
       getDsaTopicById: (id) =>
         get().dsa.topics.find((topic) => topic.id === id),
 
       // --- DSA Problem Actions ---
       addProblem: (problem) => {
-        set((state) => ({
-          dsa: { ...state.dsa, problems: [...state.dsa.problems, problem] },
-        }));
+        set((state) => {
+          state.dsa.problems.push(problem);
+        });
       },
       deleteProblem: (id) => {
-        set((state) => ({
-          dsa: {
-            ...state.dsa,
-            problems: state.dsa.problems.filter((p) => p.id !== id),
-          },
-        }));
+        set((state) => {
+          state.dsa.problems = state.dsa.problems.filter((p) => p.id !== id);
+        });
       },
       updateProblem: (updated) => {
-        set((state) => ({
-          dsa: {
-            ...state.dsa,
-            problems: state.dsa.problems.map((p) =>
-              p.id === updated.id ? updated : p,
-            ),
-          },
-        }));
+        set((state) => {
+          const index = state.dsa.problems.findIndex(
+            (p) => p.id === updated.id,
+          );
+          if (index !== -1) {
+            state.dsa.problems[index] = updated;
+          }
+        });
       },
       getDsaProblemsByTopicId: (topicId) =>
         get().dsa.problems.filter((problem) => problem.topicId === topicId),
@@ -145,67 +142,61 @@ export const useAppStore = create<AppStore>()(
 
       // --- Core Category Actions ---
       addCoreCategory: (category) => {
-        set((state) => ({
-          core: {
-            ...state.core,
-            categories: [...state.core.categories, category],
-          },
-        }));
-      },
-      deleteCoreCategory: (id) => {
         set((state) => {
-          const remainingTopics = state.core.topics.filter(
+          state.core.categories.push(category);
+        });
+      },
+      deleteCoreCategory: (id: string) => {
+        set((state) => {
+          const topicIdsToDelete = state.core.topics
+            .filter((t) => t.categoryId === id)
+            .map((t) => t.id);
+
+          state.core.categories = state.core.categories.filter(
+            (c) => c.id !== id,
+          );
+          state.core.topics = state.core.topics.filter(
             (t) => t.categoryId !== id,
           );
-          return {
-            core: {
-              ...state.core,
-              categories: state.core.categories.filter((c) => c.id !== id),
-              topics: remainingTopics,
-              subtopics: state.core.subtopics.filter(
-                (st) => remainingTopics.some((t) => t.id === st.topicId), // Only keep subtopics whose parent topic remains
-              ),
-            },
-          };
+          state.core.subtopics = state.core.subtopics.filter(
+            (st) => !topicIdsToDelete.includes(st.topicId),
+          );
         });
       },
       updateCoreCategory: (updated) => {
-        set((state) => ({
-          core: {
-            ...state.core,
-            categories: state.core.categories.map((c) =>
-              c.id === updated.id ? updated : c,
-            ),
-          },
-        }));
+        set((state) => {
+          const index = state.core.categories.findIndex(
+            (c) => c.id === updated.id,
+          );
+          if (index !== -1) {
+            state.core.categories[index] = updated;
+          }
+        });
       },
       getCoreCategoryById: (id) =>
         get().core.categories.find((category) => category.id === id),
 
       // --- Core Topic Actions ---
       addCoreTopic: (topic) => {
-        set((state) => ({
-          core: { ...state.core, topics: [...state.core.topics, topic] },
-        }));
+        set((state) => {
+          state.core.topics.push(topic);
+        });
       },
       deleteCoreTopic: (id) => {
-        set((state) => ({
-          core: {
-            ...state.core,
-            topics: state.core.topics.filter((t) => t.id !== id),
-            subtopics: state.core.subtopics.filter((st) => st.topicId !== id),
-          },
-        }));
+        set((state) => {
+          state.core.topics = state.core.topics.filter((t) => t.id !== id);
+          state.core.subtopics = state.core.subtopics.filter(
+            (st) => st.topicId !== id,
+          );
+        });
       },
       updateCoreTopic: (updated) => {
-        set((state) => ({
-          core: {
-            ...state.core,
-            topics: state.core.topics.map((t) =>
-              t.id === updated.id ? updated : t,
-            ),
-          },
-        }));
+        set((state) => {
+          const index = state.core.topics.findIndex((t) => t.id === updated.id);
+          if (index !== -1) {
+            state.core.topics[index] = updated;
+          }
+        });
       },
       getCoreTopicsByCategoryId: (categoryId) =>
         get().core.topics.filter((topic) => topic.categoryId === categoryId),
@@ -214,30 +205,26 @@ export const useAppStore = create<AppStore>()(
 
       // --- Core Subtopic Actions ---
       addCoreSubtopic: (subtopic) => {
-        set((state) => ({
-          core: {
-            ...state.core,
-            subtopics: [...state.core.subtopics, subtopic],
-          },
-        }));
+        set((state) => {
+          state.core.subtopics.push(subtopic);
+        });
       },
       deleteCoreSubtopic: (id) => {
-        set((state) => ({
-          core: {
-            ...state.core,
-            subtopics: state.core.subtopics.filter((st) => st.id !== id),
-          },
-        }));
+        set((state) => {
+          state.core.subtopics = state.core.subtopics.filter(
+            (st) => st.id !== id,
+          );
+        });
       },
       updateCoreSubtopic: (updated) => {
-        set((state) => ({
-          core: {
-            ...state.core,
-            subtopics: state.core.subtopics.map((st) =>
-              st.id === updated.id ? updated : st,
-            ),
-          },
-        }));
+        set((state) => {
+          const index = state.core.subtopics.findIndex(
+            (st) => st.id === updated.id,
+          );
+          if (index !== -1) {
+            state.core.subtopics[index] = updated;
+          }
+        });
       },
       getCoreSubtopicsByTopicId: (topicId) =>
         get().core.subtopics.filter((subtopic) => subtopic.topicId === topicId),
@@ -246,104 +233,91 @@ export const useAppStore = create<AppStore>()(
 
       // --- Interview Actions (New) ---
       addInterviewQuestion: (question) => {
-        set((state) => ({
-          interview: {
-            ...state.interview,
-            questions: [...state.interview.questions, question],
-          },
-        }));
+        set((state) => {
+          state.interview.questions.push(question);
+        });
       },
       deleteInterviewQuestion: (id) => {
-        set((state) => ({
-          interview: {
-            ...state.interview,
-            questions: state.interview.questions.filter((q) => q.id !== id),
-          },
-        }));
+        set((state) => {
+          state.interview.questions = state.interview.questions.filter(
+            (q) => q.id !== id,
+          );
+        });
       },
       updateInterviewQuestion: (updated) => {
-        set((state) => ({
-          interview: {
-            ...state.interview,
-            questions: state.interview.questions.map((q) =>
-              q.id === updated.id ? updated : q,
-            ),
-          },
-        }));
+        set((state) => {
+          const index = state.interview.questions.findIndex(
+            (q) => q.id === updated.id,
+          );
+          if (index !== -1) {
+            state.interview.questions[index] = updated;
+          }
+        });
       },
       getInterviewQuestionById: (id) =>
         get().interview.questions.find((q) => q.id === id),
 
       // --- System Design Category Actions (New) ---
       addSystemDesignCategory: (category) => {
-        set((state) => ({
-          systemDesign: {
-            ...state.systemDesign,
-            categories: [...state.systemDesign.categories, category],
-          },
-        }));
+        set((state) => {
+          state.systemDesign.categories.push(category);
+        });
       },
       deleteSystemDesignCategory: (id) => {
         set((state) => {
-          const remainingTopics = state.systemDesign.topics.filter(
+          const topicIdsToDelete = state.systemDesign.topics
+            .filter((t) => t.categoryId === id)
+            .map((t) => t.id);
+
+          state.systemDesign.categories = state.systemDesign.categories.filter(
+            (c) => c.id !== id,
+          );
+          state.systemDesign.topics = state.systemDesign.topics.filter(
             (t) => t.categoryId !== id,
           );
-          return {
-            systemDesign: {
-              ...state.systemDesign,
-              categories: state.systemDesign.categories.filter(
-                (c) => c.id !== id,
-              ),
-              topics: remainingTopics,
-              subtopics: state.systemDesign.subtopics.filter((st) =>
-                remainingTopics.some((t) => t.id === st.topicId),
-              ),
-            },
-          };
+          state.systemDesign.subtopics = state.systemDesign.subtopics.filter(
+            (st) => !topicIdsToDelete.includes(st.topicId),
+          );
         });
       },
       updateSystemDesignCategory: (updated) => {
-        set((state) => ({
-          systemDesign: {
-            ...state.systemDesign,
-            categories: state.systemDesign.categories.map((c) =>
-              c.id === updated.id ? updated : c,
-            ),
-          },
-        }));
+        set((state) => {
+          const index = state.systemDesign.categories.findIndex(
+            (c) => c.id === updated.id,
+          );
+          if (index !== -1) {
+            state.systemDesign.categories[index] = updated;
+          }
+        });
       },
       getSystemDesignCategoryById: (id) =>
         get().systemDesign.categories.find((category) => category.id === id),
 
       // --- System Design Topic Actions (New) ---
       addSystemDesignTopic: (topic) => {
-        set((state) => ({
-          systemDesign: {
-            ...state.systemDesign,
-            topics: [...state.systemDesign.topics, topic],
-          },
-        }));
+        set((state) => {
+          state.systemDesign.topics.push(topic);
+        });
       },
       deleteSystemDesignTopic: (id) => {
-        set((state) => ({
-          systemDesign: {
-            ...state.systemDesign,
-            topics: state.systemDesign.topics.filter((t) => t.id !== id),
-            subtopics: state.systemDesign.subtopics.filter(
-              (st) => st.topicId !== id,
-            ),
-          },
-        }));
+        set((state) => {
+          state.systemDesign.topics = state.systemDesign.topics.filter(
+            (t) => t.id !== id,
+          );
+          state.systemDesign.subtopics = state.systemDesign.subtopics.filter(
+            (st) => st.topicId !== id,
+          );
+        });
       },
       updateSystemDesignTopic: (updated) => {
-        set((state) => ({
-          systemDesign: {
-            ...state.systemDesign,
-            topics: state.systemDesign.topics.map((t) =>
-              t.id === updated.id ? updated : t,
-            ),
-          },
-        }));
+        set((state) => {
+          const index = state.systemDesign.topics.findIndex(
+            (t) => t.id === updated.id,
+          );
+          if (index !== -1) {
+            state.systemDesign.topics[index] = updated;
+          }
+        });
       },
       getSystemDesignTopicsByCategoryId: (categoryId) =>
         get().systemDesign.topics.filter(
@@ -354,32 +328,26 @@ export const useAppStore = create<AppStore>()(
 
       // --- System Design Subtopic Actions (New) ---
       addSystemDesignSubtopic: (subtopic) => {
-        set((state) => ({
-          systemDesign: {
-            ...state.systemDesign,
-            subtopics: [...state.systemDesign.subtopics, subtopic],
-          },
-        }));
+        set((state) => {
+          state.systemDesign.subtopics.push(subtopic);
+        });
       },
       deleteSystemDesignSubtopic: (id) => {
-        set((state) => ({
-          systemDesign: {
-            ...state.systemDesign,
-            subtopics: state.systemDesign.subtopics.filter(
-              (st) => st.id !== id,
-            ),
-          },
-        }));
+        set((state) => {
+          state.systemDesign.subtopics = state.systemDesign.subtopics.filter(
+            (st) => st.id !== id,
+          );
+        });
       },
       updateSystemDesignSubtopic: (updated) => {
-        set((state) => ({
-          systemDesign: {
-            ...state.systemDesign,
-            subtopics: state.systemDesign.subtopics.map((st) =>
-              st.id === updated.id ? updated : st,
-            ),
-          },
-        }));
+        set((state) => {
+          const index = state.systemDesign.subtopics.findIndex(
+            (st) => st.id === updated.id,
+          );
+          if (index !== -1) {
+            state.systemDesign.subtopics[index] = updated;
+          }
+        });
       },
       getSystemDesignSubtopicsByTopicId: (topicId) =>
         get().systemDesign.subtopics.filter(
@@ -390,14 +358,14 @@ export const useAppStore = create<AppStore>()(
 
       // --- Global Actions ---
       clearAllData: () => {
-        set(initialState);
+        set(() => ({ ...initialState }));
       },
       importData: (data) => {
-        set(data);
+        set(() => ({ ...data }));
       },
-    }),
+    })),
     {
-      name: "app-learning-store",
+      name: "StackWise",
       storage: {
         getItem: async (name) => {
           try {

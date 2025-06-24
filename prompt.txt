@@ -1,76 +1,450 @@
-Header section code
+🧠 AI Agent Prompt: Intelligent Goal Tracking, Performance Forecasting & Adaptive Learning Engine
 
-I’m building a modular React Native app using Expo Router and want a reusable Header component to be used across all screens. This header should be fully configurable via props, allowing customization of the title, backgroundColor, height, and both paddingHorizontal and paddingVertical. The left side of the header should show a large title, and the right side should display a "More" icon (like three vertical dots). When the user taps this icon, a popup menu should appear with three options: Add, Rename, and Delete. Each of these options triggers a specific interaction flow that is context-aware and controlled by the current route, since the type of cards rendered varies between routes (e.g., DSA topics, Core subtopics, System Design categories, Interview questions, etc.).
+Objective:
+Design and implement an offline-capable intelligent AI agent for a React Native (Expo) app that acts as a dynamic goal tracker, performance analyst, learning pace forecaster, and revision recommender. The app is focused on educational content, including DSA problems, core CS subjects like OS and DBMS, system design questions, and personal goal-setting with progress visualization via Gradial charts Eg: (currentValue , TargetValue ) and different indicators, Live Cards showing many things like current progress , performance , learning pace , revision recommendations etc and many things
+🧩 Core Capabilities & Responsibilities of the Agent
 
-When the user selects Add, a modal should appear immediately. The modal content (form fields, labels, submission logic) should be customizable per route, since each card type may require different input fields. On submission, the new item should be added to the current route's card list using the appropriate function from the useAppStore Zustand hook. For example, if on a DSA route adding a new topic, the modal should call addDsaTopic; if adding a core subtopic, it should call addCoreSubtopic, and so on.
+1. Activity Monitoring & Goal Assessment
 
-When the user selects Rename, the UI should transition into a rename mode. In this state, the header title should change to "Select a card to rename", and the list of cards should enter a single-select mode — allowing the user to tap on a single card. Once a card is selected, a modal should appear pre-filled with the current name (or title) of the card in a text input. The user can modify the name and submit the form to update it. The appropriate update function from useAppStore must be called: for instance, updateDsaTopic, updateCoreTopic, updateSystemDesignSubtopic, or updateInterviewQuestion depending on the context. During rename mode, regular action buttons like edit icons inside cards should be hidden to avoid UI conflicts. Importantly, there must be a visible and intuitive option to exit rename mode without making changes — such as a "Cancel" button either in the modal or as part of the header — which restores the original header title and reverts the cards to normal display.
+The agent should operate locally on-device, continuously monitoring user activity across the app. It must analyze:
 
-When Delete is selected, the UI should switch to a multi-select delete mode. The header title should update to "Select cards to delete", and each card in the list should display a checkbox. The user can select multiple cards, and once one or more are selected, a delete confirmation button should appear (either in the header, as a floating action button, or in a footer bar). Pressing confirm will call the appropriate deletion function from the Zustand store — for example, deleteCoreSubtopic, deleteSystemDesignTopic, or deleteProblem, depending on the list being shown. As with rename, there should also be a clearly visible cancel action to exit delete mode and reset the UI back to its default state.
+- Time spent on specific modules (e.g., DSA vs OS)
+- Task completions, frequency, and skipped days
+- User interaction patterns (time of day, session length, engagement trends)
 
-The Header component itself must not handle the modal logic or card rendering directly. Instead, it should provide callback triggers (onAdd, onRename, onDelete) that the parent screen uses to control those behaviors. This separation ensures flexibility and makes the header reusable across screens with different card types. The parent screen will integrate the actual modal implementations, conditional card rendering (normal, rename mode, delete mode), and interactions with the Zustand store.
+It should use this data to assess whether the user is consistently meeting their targets, identify fluctuations in pace, and detect signs of burnout, fatigue, or overperformance.
 
-The global useAppStore hook is used to manage all persistent data using Zustand with AsyncStorage. The store supports all major CRUD actions. For example, addDsaTopic, addProblem, addInterviewQuestion, addSystemDesignSubtopic, and their corresponding deleteX, updateX, and getXById variants are all exposed. These are structured around your app's main domains: DSA (topics, problems), Core (categories, topics, subtopics), Interview (questions), and System Design (categories, topics, subtopics). This hook must be used in modals and UI actions to mutate state across routes, ensuring all card operations are properly persisted and rendered in sync. The component and route logic must be designed to work with this centralized system, support toggling between modes (normal, rename, delete), and provide clean UX transitions, ensuring that each card list behaves independently yet consistently under the shared header experience.
+2. Dynamic Goal Setting and Adjustment
 
-Card Reodering logic
+Goals evolve weekly; daily targets are adaptive, not fixed.
 
-✅ Step-by-Step Implementation of Card Reordering
-📦 Step 1: Install the Library
-If not installed yet, run:
+- Calculate an adaptive daily target using weighted factors like recent performance, average pace, engagement window, and capacity.
+- Increase/decrease workload based on momentum or fatigue.
+- Adjust daily goals automatically and notify the user.
+- Factor in the complexity of tasks (e.g., solving a system design question vs revising DBMS notes).
 
-sh
-Copy
-Edit
-npx expo install react-native-draggable-flatlist
-📦 Step 2: Replace Flat Card List with DraggableFlatList
-In your Header component (or wherever you render the cards), replace your map()-based card rendering with this:
+3. Personalized Learning Forecast & Prediction
 
-🔁 1. Import DraggableFlatList
-tsx
-Copy
-Edit
-import DraggableFlatList, {
-  RenderItemParams,
-} from "react-native-draggable-flatlist";
-🔁 2. Replace the View that lists cards with this component:
-tsx
-Copy
-Edit
-<DraggableFlatList
-  data={data}
-  keyExtractor={(item) => item.id}
-  onDragEnd={({ data: newData }) => {
-    setData(newData); // Persist rearranged order
-  }}
-  renderItem={({ item, drag, isActive }: RenderItemParams<Card>) => {
-    const isSelected = selectedToDelete.has(item.id);
+The agent should forecast learning trajectories. This includes:
 
-    return (
-      <TouchableOpacity
-        style={[
-          styles.card,
-          isActive && { backgroundColor: "#444" },
-          deleteMode && isSelected && { borderColor: "#ff5c5c", borderWidth: 1 },
-        ]}
-        onLongPress={drag}
-        onPress={() => {
-          if (renameMode) handleCardTap(item);
-          else if (deleteMode) toggleDeleteSelection(item.id);
-        }}
-      >
-        <Text style={styles.cardText}>{item.title}</Text>
-        {deleteMode && (
-          <View style={styles.checkbox}>
-            <Text style={{ color: "#fff" }}>{isSelected ? "✓" : "○"}</Text>
-          </View>
-        )}
-      </TouchableOpacity>
-    );
-  }}
-/>
-🧠 Notes on Behavior
-Feature	Behavior
-Long press card	Starts dragging
-Drag and release	Reorders the list and persists new order via setData()
-Works with modes	You can still rename or delete during drag if you disable drag in those states (optional enhancement)
-Active card style	You can highlight the card while it's being dragged (isActive)
+- Predicting future productivity (e.g., how many tasks can be achieved this week , how many days to meet the final goal(not static)
+- Estimating time to complete newly added goals
+- Identifying periods of high/low activity using past trend modeling
+- Making suggestions on when to intensify or ease off based on forecasted performance and historic patterns
+
+This can be achieved through time series analysis (sliding window averages, exponential smoothing) or basic ML models if embedded offline.
+
+4. Revision Scheduling & Knowledge Decay Management
+
+The agent must incorporate a knowledge decay model. Based on principles like the Ebbinghaus forgetting curve, it should:
+
+- Track when a concept or problem was first learned or practiced
+- Schedule intelligent revisions at spaced intervals (e.g., after 3 days, 1 week, 1 month)
+- Prioritize revision for concepts/topics that haven’t been revisited in a long time
+- Recommend re-practice for tasks where user took too long or struggled
+
+This makes learning more retentive, not just task-driven.
+
+5. Progress Visualization & Feedback Loop
+
+The agent should update all visual analytics (charts) based on its findings:
+
+- Daily/weekly target charts (adjusted dynamically)
+- Topic-wise mastery distribution
+- Pacing graphs (actual vs forecasted)
+- Streaks, consistency heatmaps, burnout warnings
+
+It should also push brief daily feedback summaries like:
+
+> “You completed 80% of your adaptive target today. Good consistency! Tomorrow’s target has been slightly increased based on your recent streak.”
+Or:
+> “You missed revision for DBMS. Consider revisiting ER Models and Indexing Concepts today.”
+
+6. Offline Background Operation
+
+This AI agent must run completely offline, functioning autonomously without internet or cloud interaction. It should:
+
+- Stay alive in background mode, even when the app is killed.Periodically (e.g., every X hours or based on data event triggers): Run evaluation logic and Schedule adaptive local notifications
+- Schedule local notifications for daily goals, overdue tasks, or revision prompts
+- Store and analyze data locally ( AsyncStorage)
+- Degrade gracefully under low storage/memory environments
+- Notifications are not fixed-time; they are intelligently timed based on:
+    - Missed goals
+    - Revision decay urgency
+    - Detected user learning windows (e.g., you learn best in the evening)
+    - Burnout patterns (e.g., long sessions → “take a break” nudge)
+- It must also avoid excessive CPU/battery usage by running in optimized intervals.
+
+---
+📦 Technical Considerations
+
+🗃️ Data Storage
+ - Use Zustand (already in use) for real-time UI data sync.
+ - Use SQLite (expo-sqlite) to persist temporal data and logs:
+    - Task activity logs (problemId, topicId, timestamp, duration, status)
+    - Revision schedule with decay model
+    -Background model states and last evaluations
+
+⏱️ Smart Scheduler (Offline-First)
+- Use expo-task-manager with expo-background-fetch to simulate background jobs.
+- AI model should re-run:
+    - At interval (every few hours)
+    - On certain triggers (e.g., inactivity spike, app usage spike)
+- If long inactivity is detected, trigger a “comeback plan” with lighter auto-set goals.
+
+🔔 Notifications
+- Use expo-notifications to:
+    - Schedule adaptive goal changes
+    - Send revision alerts based on spaced repetition urgency
+    - Throw behavior-based nudges like:
+        - “You’ve been solving back-to-back for 1.5 hours. Take a 15-min break!”
+- Notifications must still be sent when app is fully closed, relying on expo-notifications + expo-background-fetch + expo-task-manager.
+
+🧠 Adaptation Algorithm
+- Use sliding window average (Eg : 3–5 day task completion window)
+- Use exponential smoothing to detect upward/downward trends
+- Apply conditional rules ( Eg ):
+    - If activity dropped for 2 days → reduce goal by 20%
+    - If consistent spike for 3+ days → increase goal gently
+
+📈 Prediction & Trend Module: Use lightweight linear regression or heuristic trend extrapolation for weekly forecasting.Eg:User energy patterns , Completion likelihood on Time , Burnout probability
+
+🔁 Revision Engine: Based on spaced repetition intervals, decay scoring, and topic usage frequency.
+---
+
+🔐 Smart Features (also have to be implemented
+
+Fatigue Detection: If user consistently overshoots target, recommend cooldown days.
+Challenge Recommendation: If user finishes early, suggest additional bonus tasks from weak areas.
+Inactivity Detection: If user misses multiple days, suggest a comeback plan with lighter load.
+Micro-goals: Break large goals into sub-units and dynamically reassign when user skips a day.
+Behavioral Insights: Highlight patterns like “You focus better in the evening” or “Most consistent on weekends”.
+---
+🛠️ Implementation Guide: Steps, Directory, Libraries, and Error Handling
+- Steps: Define clear steps for each feature, including user interactions and system responses.
+- Directory: Organize code into logical directories based on feature or functionality.
+- Libraries: Utilize relevant libraries for data analysis, machine learning, and user interface components.
+- Error Handling: Implement robust error handling mechanisms to ensure smooth operation and user experience.
+
+Response structure
+- Before coding this, you have to give a brief overview of the implementation(working,dir structure , example walkthrough) so that i can get clear understanding what is your idea.
+- If i approve this , then you will be start implementing in 4 phases and each phase will be first tested and then proceed to next phase
+- also tell what changes need to be made in my useAppStore schema in implementing the new tracking system
+
+My current schema
+- have currently 4 routes /dsa , /core , /interview , /systemDesign , /home
+- currently using useStore.ts hook for managing data for whole app
+// ---------- Shared Types ----------
+type ContentElement =
+  | { type: "paragraph"; value: string }
+  | { type: "code"; value: string; language?: string }
+  | { type: "image"; value: string; alt?: string };
+
+type Difficulty = "easy" | "medium" | "hard";
+
+// ---------- DSA ----------
+type DsaTopic = {
+  id: string;
+  title: string;
+  subtitle: string;
+};
+
+type Problem = {
+  id: string;
+  topicId: string;
+  title: string;
+  explanation: string;
+  problemLink?: string;
+  difficultyLevel: Difficulty;
+  testCase: string;
+  solution: string;
+  code: string;
+  similarProblems?: {
+    title: string;
+    description: string;
+    shortExplanation: string | string[];
+    difficultyLevel: Difficulty;
+    code?: string;
+  }[];
+};
+
+// ---------- Core & System Design ----------
+type Category = {
+  id: string;
+  name: string;
+  description?: string;
+};
+
+type Topic = {
+  id: string;
+  categoryId: string;
+  name: string;
+  description?: string;
+};
+
+type Subtopic = {
+  id: string;
+  topicId: string;
+  title: string;
+  content: ContentElement[];
+};
+
+// ---------- Interview ----------
+type InterviewQuestion = {
+  id: string;
+  question: string;
+  answer: ContentElement[];
+};
+
+// ---------- AppState ----------
+type AppState = {
+  dsa: {
+    topics: DsaTopic[];
+    problems: Problem[];
+  };
+  core: {
+    categories: Category[];
+    topics: Topic[];
+    subtopics: Subtopic[];
+  };
+  interview: {
+    questions: InterviewQuestion[];
+  };
+  systemDesign: {
+    categories: Category[];
+    topics: Topic[];
+    subtopics: Subtopic[];
+  };
+};
+
+// ---------- AppActions ----------
+type AppActions = {
+  // Generic Helpers
+  add<T>(section: keyof AppState, item: any): void;
+  update<T>(section: keyof AppState, item: any): void;
+  delete<T>(section: keyof AppState, id: string): void;
+
+  // Specific Getters
+  getDsaTopicById(id: string): DsaTopic | undefined;
+  getProblemById(id: string): Problem | undefined;
+  getDsaProblemsByTopicId(topicId: string): Problem[];
+
+  getCoreCategoryById(id: string): Category | undefined;
+  getCoreTopicById(id: string): Topic | undefined;
+  getCoreTopicsByCategoryId(categoryId: string): Topic[];
+  getCoreSubtopicsByTopicId(topicId: string): Subtopic[];
+  getCoreSubtopicById(id: string): Subtopic | undefined;
+
+  getInterviewQuestionById(id: string): InterviewQuestion | undefined;
+
+  getSystemDesignCategoryById(id: string): Category | undefined;
+  getSystemDesignTopicsByCategoryId(categoryId: string): Topic[];
+  getSystemDesignTopicById(id: string): Topic | undefined;
+  getSystemDesignSubtopicsByTopicId(topicId: string): Subtopic[];
+  getSystemDesignSubtopicById(id: string): Subtopic | undefined;
+
+  clearAllData(): void;
+  importData(data: AppState): void;
+};
+
+// ---------- Final Store Type ----------
+type AppStore = AppState & AppActions;
+
+📝 Example User Flow (Daily Cycle)
+
+1. User opens app → agent checks history → updates today’s dynamic target
+2. Based on trends, agent schedules a notification:
+“Target: 3 DSA + 1 System Design Qn”
+3. At end of day, agent logs progress, updates streaks, and forecasts next day.
+4. If DBMS hasn't been touched in 14 days → agent schedules revision
+5. Charts reflect updated pacing and projected completion trends
+
+📉 Example User Flow: Auto Chart Update
+Yesterday, user missed all Core subtopic goals.
+Today, opens app and starts fresh.
+Agent runs immediately on resume:
+Reduces goal in "Core" ring from 5 to 2
+Increases DSA ring goal slightly due to past overperformance
+
+📲 Example User Flow: Adaptive Notification
+User opens app, solves 2 DSA problems.
+Agent detects strong momentum.
+App is closed. After 2 hours, agent runs in background:
+Notices high energy window around this time historically
+Also notes DBMS revision is overdue
+Sends this notification : complete your today target
+
+------------------------------------------------------ Schema Design -----------------------------------------------------------------
+
+// ---------- Reusable Content ----------
+type ContentElement =
+  | { type: "paragraph"; value: string }
+  | { type: "code"; value: string; language?: string }
+  | { type: "image"; value: string; alt?: string };
+
+
+type SimilarProblem = {
+  title: string;
+  description: string;
+  shortExplanation: string | string[];
+  difficultyLevel: "easy" | "medium" | "hard";
+  code?: string;
+};
+
+type DsaTopic = {
+  id: string;
+  title: string;
+  subtitle: string;
+};
+
+type Problem = {
+  id: string;
+  topicId: string;
+  title: string;
+  explanation: string;
+  problemLink?: string;
+  difficultyLevel: "easy" | "medium" | "hard";
+  testCase: string;
+  solution: string;
+  code: string;
+  similarProblems?: SimilarProblem[];
+};
+
+// ---------- Core ----------
+type CoreCategory = {
+  id: string;
+  name: string;
+  description?: string;
+};
+
+type CoreTopic = {
+  id: string;
+  categoryId: string;
+  name: string;
+  description?: string;
+};
+
+type CoreSubtopic = {
+  id: string;
+  topicId: string;
+  title: string;
+  content: ContentElement[];
+};
+
+// ---------- Interview ----------
+type InterviewQuestion = {
+  id: string;
+  question: string;
+  answer: ContentElement[];
+};
+
+// ---------- System Design ----------
+type SystemDesignCategory = {
+  id: string;
+  name: string;
+  description?: string;
+};
+
+type SystemDesignTopic = {
+  id: string;
+  categoryId: string;
+  name: string;
+  description?: string;
+};
+
+type SystemDesignSubtopic = {
+  id: string;
+  topicId: string;
+  title: string;
+  content: ContentElement[];
+};
+
+// ---------- Global App State ----------
+type AppState = {
+  dsa: {
+    topics: DsaTopic[];
+    problems: Problem[];
+  };
+  core: {
+    categories: CoreCategory[];
+    topics: CoreTopic[];
+    subtopics: CoreSubtopic[];
+  };
+  interview: {
+    questions: InterviewQuestion[];
+  };
+  systemDesign: {
+    categories: SystemDesignCategory[];
+    topics: SystemDesignTopic[];
+    subtopics: SystemDesignSubtopic[];
+  };
+};
+
+// ---------- App Store Actions ----------
+type AppActions = {
+  // DSA Topic
+  addDsaTopic: (topic: DsaTopic) => void;
+  deleteDsaTopic: (id: string) => void;
+  updateDsaTopic: (updated: DsaTopic) => void;
+  getDsaTopicById: (id: string) => DsaTopic | undefined;
+
+  // DSA Problems
+  addProblem: (problem: Problem) => void;
+  deleteProblem: (id: string) => void;
+  updateProblem: (updated: Problem) => void;
+  getProblemById: (problemId: string) => Problem | undefined;
+  getDsaProblemsByTopicId: (topicId: string) => Problem[];
+
+  // Core Category
+  addCoreCategory: (category: CoreCategory) => void;
+  deleteCoreCategory: (id: string) => void;
+  updateCoreCategory: (updated: CoreCategory) => void;
+  getCoreCategoryById: (id: string) => CoreCategory | undefined;
+
+  // Core Topic
+  addCoreTopic: (topic: CoreTopic) => void;
+  deleteCoreTopic: (id: string) => void;
+  updateCoreTopic: (updated: CoreTopic) => void;
+  getCoreTopicsByCategoryId: (categoryId: string) => CoreTopic[];
+  getCoreTopicById: (id: string) => CoreTopic | undefined;
+
+  // Core Subtopic
+  addCoreSubtopic: (subtopic: CoreSubtopic) => void;
+  deleteCoreSubtopic: (id: string) => void;
+  updateCoreSubtopic: (updated: CoreSubtopic) => void;
+  getCoreSubtopicsByTopicId: (topicId: string) => CoreSubtopic[];
+  getCoreSubtopicById: (id: string) => CoreSubtopic | undefined;
+
+  // Interview
+  addInterviewQuestion: (question: InterviewQuestion) => void;
+  deleteInterviewQuestion: (id: string) => void;
+  updateInterviewQuestion: (updated: InterviewQuestion) => void;
+  getInterviewQuestionById: (id: string) => InterviewQuestion | undefined;
+
+  // System Design Category
+  addSystemDesignCategory: (category: SystemDesignCategory) => void;
+  deleteSystemDesignCategory: (id: string) => void;
+  updateSystemDesignCategory: (updated: SystemDesignCategory) => void;
+  getSystemDesignCategoryById: (id: string) => SystemDesignCategory | undefined;
+
+  // System Design Topic
+  addSystemDesignTopic: (topic: SystemDesignTopic) => void;
+  deleteSystemDesignTopic: (id: string) => void;
+  updateSystemDesignTopic: (updated: SystemDesignTopic) => void;
+  getSystemDesignTopicsByCategoryId: (categoryId: string) => SystemDesignTopic[];
+  getSystemDesignTopicById: (id: string) => SystemDesignTopic | undefined;
+
+  // System Design Subtopic
+  addSystemDesignSubtopic: (subtopic: SystemDesignSubtopic) => void;
+  deleteSystemDesignSubtopic: (id: string) => void;
+  updateSystemDesignSubtopic: (updated: SystemDesignSubtopic) => void;
+  getSystemDesignSubtopicsByTopicId: (topicId: string) => SystemDesignSubtopic[];
+  getSystemDesignSubtopicById: (id: string) => SystemDesignSubtopic | undefined;
+
+  // Global
+  clearAllData: () => void;
+  importData: (data: AppState) => void;
+};
+
+// ---------- Final Store Type ----------
+type AppStore = AppState & AppActions;
