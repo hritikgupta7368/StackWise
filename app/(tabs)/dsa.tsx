@@ -1,109 +1,70 @@
-import React, { useEffect, useState, useCallback } from "react";
-import { View, Text, StyleSheet, ScrollView, SafeAreaView } from "react-native";
+import React from "react";
+import { View, Text, StyleSheet, ScrollView } from "react-native";
 import BackgroundWrapper from "../../components/Background/backgroundWrapper";
-import CategoryListItem from "../../components/Preview/list";
-import { useAppStore } from "../../hooks/useStore";
-import { useHeaderState } from "@/components/Header/header";
-import Header from "@/components/Header/header";
+import CategoryListItem from "@/components/Cards/DsaTopicCard";
+import { useAppStore } from "../../store/useStore";
 import StatsChart from "../../components/Charts/pieChart";
+import Header from "@/components/common/NewHeader";
+import { useOverlayStore } from "@/store/useOverlayStore";
+import { DeleteTopicsSheet, AddTopicForm, UpdateTopicForm } from "@/components/Forms/dsaForms/DsaTopic";
 
 export default function DsaTopics() {
   const {
     dsa: { topics },
-    addDsaTopic,
-    deleteDsaTopic,
-    updateDsaTopic,
-    getDsaTopicById,
   } = useAppStore();
+  const { showBottomSheet, showDialogModal } = useOverlayStore();
 
-  // ✅ Rename
-  const handleRename = useCallback(
-    (id: string, newTitle: string) => {
-      const topic = getDsaTopicById(id);
-      if (topic && topic.title !== newTitle) {
-        updateDsaTopic({ ...topic, title: newTitle });
-      }
-    },
-    [getDsaTopicById, updateDsaTopic],
-  );
-
-  // Get title for rename modal
-  const getTitleById = useCallback(
-    (id: string) => {
-      return getDsaTopicById(id)?.title || "";
-    },
-    [getDsaTopicById],
-  );
-
-  // Add handler
-  const handleAdd = useCallback(
-    (title: string) => {
-      const newTopic = {
-        id: Date.now().toString(),
-        title,
-        subtitle: "",
-      };
-      addDsaTopic(newTopic);
-    },
-    [addDsaTopic],
-  );
-
-  // Delete handler
-  const handleDelete = useCallback(
-    (ids: string[]) => {
-      ids.forEach(deleteDsaTopic);
-    },
-    [deleteDsaTopic],
-  );
-
-  const { headerState, headerControls } = useHeaderState(
-    getTitleById,
-    handleRename,
-  );
+  function updateTopic(id: string, title: string, subtitle: string) {
+    showDialogModal({
+      title: "Update Topic",
+      type: "default",
+      subtitle: "Provide a name and details to update the topic.",
+      content: <UpdateTopicForm id={id} oldTitle={title} oldSubtitle={subtitle} />,
+    });
+  }
 
   return (
     <BackgroundWrapper>
-      <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
-        <Header
-          title="DSA Topics"
-          actions={{
-            onAdd: handleAdd,
-            onDelete: handleDelete,
-          }}
-          addContextLabel="DSA Topic"
-          renameContextLabel="Topic"
-          headerControls={headerControls}
-          headerState={headerState}
-        />
-        <ScrollView
-          contentContainerStyle={styles.scroll}
-          keyboardShouldPersistTaps="handled"
-        >
-          {topics.length > 0 && <StatsChart />}
-          {topics.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyText}>No topics yet. Tap + to add.</Text>
-            </View>
-          ) : (
-            topics.map((topic, index) => (
-              <CategoryListItem
-                key={topic.id}
-                index={index}
-                category={topic}
-                pathLink="/dsa/[topic]"
-                deleteMode={headerState.deleteMode}
-                isSelected={headerState.selectedToDelete.has(topic.id)}
-                onDelete={() => headerState.toggleDeleteSelection(topic.id)}
-                onTap={
-                  headerState.renameMode
-                    ? () => headerState.handleCardTap(topic.id)
-                    : undefined // ← don’t pass if not rename mode
-                }
-              />
-            ))
-          )}
-        </ScrollView>
-      </SafeAreaView>
+      <Header
+        title="DSA Topics"
+        leftIcon="none"
+        rightIcon="menu"
+        theme="dark"
+        backgroundColor="transparent"
+        menuOptions={[
+          {
+            label: "Add Topic",
+            onPress: () =>
+              showDialogModal({
+                title: "New Topic",
+                type: "default",
+                subtitle: "Provide a name and details to create a new topic.",
+                content: <AddTopicForm />,
+              }),
+          },
+          {
+            label: "Delete Topics",
+            onPress: () =>
+              showBottomSheet({
+                height: 600,
+                variant: "default",
+                title: "Delete DSA Topics",
+                subtitle: "Select topics to delete.",
+                content: <DeleteTopicsSheet />,
+              }),
+          },
+        ]}
+      />
+      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+        {topics.length > 0 && <StatsChart />}
+        {topics.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyText}>No topics yet. Tap + to add.</Text>
+          </View>
+        ) : (
+          topics.map((topic, index) => <CategoryListItem key={topic.id} index={index} category={topic} pathLink="/dsa/[topic]" update={updateTopic} />)
+        )}
+      </ScrollView>
     </BackgroundWrapper>
   );
 }
@@ -122,5 +83,12 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     color: "#888",
+  },
+  cardContainer: { borderRadius: 30, overflow: "hidden" },
+  contentContainer: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 6, paddingLeft: 6 },
+  lhs: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
 });

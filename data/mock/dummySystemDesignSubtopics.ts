@@ -10,22 +10,15 @@ export const dummySystemDesignSubtopics: SystemDesignSubtopic[] = [
     content: [
       {
         type: "paragraph",
-        value:
-          "Load balancers come in various forms, each with specific use cases and advantages. They can operate at different layers of the OSI model.",
+        value: "Load balancers come in various forms, each with specific use cases and advantages. They can operate at different layers of the OSI model.",
       },
       {
-        type: "list",
-        value: [
-          "**Layer 4 (Transport Layer):** Distributes client requests based on IP address and port. Simple and fast.",
-          "**Layer 7 (Application Layer):** Distributes requests based on application-level data (e.g., HTTP headers, URL paths). More intelligent and flexible.",
-          "**Hardware Load Balancers:** Dedicated physical devices, high performance but costly.",
-          "**Software Load Balancers:** Runs on commodity servers or VMs, flexible and cost-effective.",
-          "**DNS-based Load Balancers:** Distributes traffic by returning different IP addresses for DNS queries.",
-        ],
+        type: "paragraph",
+        value: "Layer 4 (Transport Layer) distributes client requests based on IP address and port. It is simple and fast. Layer 7 (Application Layer) distributes requests based on application-level data such as HTTP headers or URL paths, offering more intelligent and flexible routing. Hardware load balancers are dedicated physical devices that offer high performance but can be expensive. In contrast, software load balancers run on commodity servers or virtual machines, making them more flexible and cost-effective. Finally, DNS-based load balancers distribute traffic by returning different IP addresses in response to DNS queries.",
       },
       {
         type: "image",
-        value: "systemdesign/load_balancer_types.png",
+        value: ["systemdesign/load_balancer_types.png"],
         alt: "Diagram illustrating different types of load balancers",
       },
     ],
@@ -40,14 +33,8 @@ export const dummySystemDesignSubtopics: SystemDesignSubtopic[] = [
         value: "Algorithms determine how traffic is distributed among servers.",
       },
       {
-        type: "list",
-        value: [
-          "**Round Robin:** Distributes requests sequentially to each server in a list.",
-          "**Weighted Round Robin:** Servers with higher weights receive more requests.",
-          "**Least Connections:** Directs traffic to the server with the fewest active connections.",
-          "**Least Response Time:** Directs traffic to the server with the fewest active connections and the fastest average response time.",
-          "**IP Hash:** Uses a hash of the client's IP address to determine the server, ensuring client always connects to the same server.",
-        ],
+        type: "paragraph",
+        value: "**Round Robin:** Distributes requests sequentially to each server in a list.Weighted Round Robin:** Servers with higher weights receive more requests.**Least Connections:** Directs traffic to the server with the fewest active connections.**Least Response Time:** Directs traffic to the server with the fewest active connections and the fastest average response time.**IP Hash:** Uses a hash of the client's IP address to determine the server, ensuring client always connects to the same server.",
       },
     ],
   },
@@ -59,15 +46,11 @@ export const dummySystemDesignSubtopics: SystemDesignSubtopic[] = [
     content: [
       {
         type: "paragraph",
-        value:
-          "Understanding the trade-offs between monolithic and microservices architectures is crucial for system design.",
+        value: "Understanding the trade-offs between monolithic and microservices architectures is crucial for system design.",
       },
       {
-        type: "list",
-        value: [
-          "**Monolithic:** Single, tightly coupled application. Easier to deploy initially, but difficult to scale specific parts and slower development at scale.",
-          "**Microservices:** Collection of small, loosely coupled services. Independent deployment, better scalability, but complex to manage and operate.",
-        ],
+        type: "paragraph",
+        value: "Monolithic architecture is a single, tightly coupled application that is easier to deploy initially but difficult to scale specific parts and slower development at scale. Microservices architecture is a collection of small, loosely coupled services that offer independent deployment, better scalability, but complex to manage and operate.",
       },
     ],
   },

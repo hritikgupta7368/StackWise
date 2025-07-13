@@ -448,3 +448,292 @@ type AppActions = {
 
 // ---------- Final Store Type ----------
 type AppStore = AppState & AppActions;
+
+
+
+
+
+
+
+
+
+/// agent
+
+Yes — now I clearly and fully understand what you're building. You're not just creating a daily planner or a stats tracker. You're designing a fully autonomous AI-powered learning engine that:
+
+🚨 CORE PRINCIPLE:
+“I (the user) will NEVER manage the system. I will only study. Everything else — planning, adapting, updating, deleting, adjusting — is 100% the job of the algorithm.”
+
+You only control:
+
+mode: normal / boost / light
+
+preferredDailyLoad: e.g. 3 tasks/day
+
+revisionIntensity: e.g. 20%
+
+The rest is purely algorithmic intelligence.
+
+✅ SYSTEM GOALS (As Per You)
+1. 🎯 Auto-Create Daily Goals (for next 7 days)
+Based on your historical speed, mood patterns, consistency, burnout chances, and domain progress
+
+Ensures that goals stay aligned with overall data completion
+
+2. ⏰ Auto-Schedule Learning Tasks Hour by Hour
+Predicts best time slots based on your actual habits (TimePatternMemory)
+
+Adjusts if you tend to shift things late, take longer, or rush
+
+3. 🔁 Auto-Rearrange & Adjust Plans Continuously
+If today you perform poorly → rebalances rest of the 6 days
+
+If you overperform → advances harder topics sooner
+
+Missed tasks automatically roll over (not your concern)
+
+4. 🧠 Auto-Learn Your Behavior & Preferences
+Collects invisible stats: best hours, weak domains, when you skip, your tolerance
+
+Adapts to you — like iPhone’s battery management or Tesla’s auto-drive
+
+5. 📊 Auto-Update All Stats and Forecasts Hourly
+System doesn’t wait for "end of day"
+
+It learns in near real-time — and adjusts future schedules and forecasts constantly
+
+6. 🎓 Auto-Focus on Completion of Entire Curriculum
+It knows how much total data is available in DSA, Core, etc.
+
+It monitors how much you've covered — and aims to finish everything eventually
+
+No need to set manual targets — the engine builds the timeline itself
+
+🧠 ANALOGY TO UNDERSTAND THIS SYSTEM
+This is NOT a "planner app".
+This is closer to:
+
+“A digital learning coach that lives in your phone, studies you silently, and crafts the perfect study path — without ever bothering you.”
+
+You simply follow what it says, and it handles the rest.
+
+⚙️ KEY ENGINE RESPONSIBILITIES
+Engine Task	Description
+generateNext7Days()	Creates DailyGoals + Schedules based on everything it knows
+hourlySync()	Every hour, even if app isn’t opened, updates stats, forecasts, task status
+detectDeviation()	Sees if user didn’t follow schedule, and logs reason
+autoRestructure()	Adjusts future goals and time allocations based on patterns
+trackLearningPatterns()	Learns what domains you struggle in, what time you thrive
+trackCompletionRate()	Learns your average load tolerance and uses it to adjust difficulty
+forecastETA()	Updates how long it'll take you to finish DSA/Core/etc
+digestGenerator()	Creates daily/weekly/monthly reports to help future planning
+modeAdjuster()	Reacts to behavior — shifts mode to recovery, low-load, etc if needed
+
+🚀 EXAMPLE — A FULL WEEK (AUTONOMOUS MODE)
+Day	What You Do	What Engine Does
+Mon	Open app at 10:15 AM → study 2/4 tasks	Logs real-time completion, updates streak, shifts pending 2 tasks forward
+Tue	Don’t open the app at all	Logs a missed day, rolls over tasks, slightly lowers next day’s load
+Wed	Open at 2 PM → study 5 tasks (bonus)	Logs bonus performance, increases confidence in high-load handling
+Thu	Reschedule task from 9 AM to 4 PM	Learns that mornings are bad; avoids morning tasks in future
+Fri	Study 3/3 on time	Logs perfect day → increases forecast accuracy
+Sat	App not opened	Logged as skipped, revision load carried to Monday
+Sun	Open at 5 PM, complete revision + 1 bonus	Updates revision stats, improves your preferred time window to 4–6 PM
+
+By Sunday night:
+
+🧠 Your GoalMemory, TimePatternMemory, Forecast, and Metrics have evolved
+
+🎯 System quietly regenerates DailyGoals + Schedules for next 7 days
+
+📊 Updated GoalDigest shows insights (optional UI)
+
+✅ YOU NEVER DO THESE
+What You Don't Do	Why
+Set goals manually	Engine already planned next 7 days
+Track your revision dates	Engine calculates and inserts revision tasks
+Reschedule plans daily	Engine detects and adjusts automatically
+Count stats or streaks	Engine handles GoalDigest, Forecast, Metrics
+Plan how much to learn	You just tweak preferredDailyLoad or mode
+
+🧪 FUTURE EXTENSIONS POSSIBLE
+🤖 Add ML models to optimize schedules across months
+
+🧬 Personal learning DNA generation (based on your behavior)
+
+📲 Notifications like “Feeling strong today? Want to switch to boost mode?”
+
+✅ FINAL NOTE
+This is the smartest kind of personal learning system possible:
+
+You learn → it observes → it evolves → it plans → repeat.
+
+
+
+
+
+
+
+Now that we’ve finalized the autonomous intelligence system, we can:
+
+Start implementing goal generation code
+
+Design adaptive UI dashboards
+
+Connect hourly trackers (even in background)
+
+Would you like to start implementing generateNext7Days() function first?
+plan
+
+✅ FINAL PLAN: Smart Daily Goal + Forecasting Engine
+We’ll break the implementation into 8 focused modules that work together to make your app fully autonomous, smart, and adaptive — with no manual effort from you.
+
+🔁 PHASE 1: DAILY GOAL ENGINE (foundation)
+1. generateNext7DaysGoals()
+📥 Input: current user config, available content, past performance
+
+🧠 Logic: picks what you should learn + revise for the next 7 days
+
+📤 Output: array of DailyGoal objects (fully structured)
+
+✅ Outcome: Fully auto-generated 7-day plan
+
+2. updateTodayGoalProgress()
+Triggers every hour or when app is opened
+
+Tracks:
+
+% completed
+
+if you're behind
+
+what was carried over
+
+if today’s goal needs adjusting
+
+✅ Outcome: Keeps today’s goal live and accurate
+
+3. recordGoalHistoryLog()
+Logs what actions were completed/skipped with:
+
+startedAt, completedAt, time spent, etc.
+
+Updates hourly stats + reschedule logs if needed
+
+✅ Outcome: Ensures history is accurate for analytics and patterns
+
+🔁 PHASE 2: USER CONFIG & BEHAVIOR MODEL
+4. GoalMemoryManager
+Builds your GoalMemory by observing:
+
+Time of day you learn
+
+Whether you quit early
+
+How you behave on weekends or long days
+
+✅ Outcome: Algo learns your personality
+
+5. TimePatternTracker
+Tracks when you study (e.g. 9:15am – 10:00am)
+
+Builds TimePatternMemory:
+
+Preferred slots
+
+Success rate by time block
+
+How long you take
+
+✅ Outcome: Helps in scheduling smarter day plans
+
+6. ScheduledPlanGenerator
+Generates a recommended schedule for a day
+
+E.g. “Do DSA problem at 10:15–11:00”, “Revise core at 5pm”
+
+Auto-updates on missed or completed actions
+
+✅ Outcome: Smart, auto-adjusting daily schedule — but user can ignore if they want
+
+🔁 PHASE 3: FORECAST & ADAPTATION
+7. GoalForecastEngine
+Estimates:
+
+When you'll finish all your DSA, core, interview, SD content
+
+Based on:
+
+Your speed, missed days, load, and streaks
+
+Also updates GoalEngineMetrics
+
+✅ Outcome: Motivating visual + realistic expectations
+
+8. RescheduleOptimizer
+Reacts when you:
+
+Fall behind
+
+Miss tasks
+
+Take longer than usual
+
+Can reschedule future goals, carry over, or simplify next day
+
+✅ Outcome: Keeps the plan alive and manageable — even if you mess up
+
+BONUS (Later):
+🔍 AnalyzeWeekDigest()
+Aggregates weekly trends like:
+
+Top topic
+
+Missed rates
+
+Mood logs
+
+Motivation drops
+
+Helps ML models and future features
+
+✅ Outcome: Long-term learning summary & insights
+
+📦 OUTPUT DATA WE’LL MAINTAIN:
+Module	Output
+generateNext7DaysGoals()	DailyGoal[]
+updateTodayGoalProgress()	DailyGoal (live update)
+recordGoalHistoryLog()	GoalHistoryLog[]
+GoalMemoryManager	GoalMemory
+TimePatternTracker	TimePatternMemory
+ScheduledPlanGenerator	ScheduledPlan[]
+GoalForecastEngine	GoalForecast + GoalEngineMetrics
+RescheduleOptimizer	Updated future goals
+
+🛠 IMPLEMENTATION ORDER
+We’ll build in this order:
+
+✅ PHASE 1
+[🔹] generateNext7DaysGoals() ← Start here
+
+ updateTodayGoalProgress()
+
+ recordGoalHistoryLog()
+
+🔜 PHASE 2
+ GoalMemoryManager
+
+ TimePatternTracker
+
+ ScheduledPlanGenerator
+
+🔜 PHASE 3
+ GoalForecastEngine
+
+ RescheduleOptimizer
+
+🟢 Shall We Begin?
+If you're happy with this breakdown:
+
+We'll begin with generateNext7DaysGoals(), which is non-destructive, pure, and uses existing data.
+
+Would you like a preview of how it will work before we code it? Or shall we jump to writing that function?

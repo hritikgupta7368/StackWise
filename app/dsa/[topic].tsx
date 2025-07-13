@@ -1,89 +1,104 @@
-import { useEffect, useState, useRef } from "react";
-import {
-  Text,
-  ScrollView,
-  View,
-  StyleSheet,
-  TouchableOpacity,
-  Linking,
-  Animated,
-  Image,
-} from "react-native";
+import { useEffect, useState, useRef, useMemo, useCallback } from "react";
+import { Text, ScrollView, View, StyleSheet, TouchableOpacity, Linking, Animated, Image } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useLocalSearchParams, Stack } from "expo-router";
-import { useAppStore, useAppStoreStore } from "../../hooks/useStore";
-import SliderComponent from "../../components/Preview/sliderPagination";
+import { useLocalSearchParams } from "expo-router";
+import { useAppStore } from "../../store/useStore";
+import SliderComponent from "@/components/common/Slider";
 import { FontAwesome } from "@expo/vector-icons";
-import SimilarQuestionCard from "../../components/Preview/similarCard";
-import CodeBlock from "../../components/Preview/codeBlock";
+import SimilarQuestionCard from "@/components/Cards/SimilarQuestionCard";
+
 import ImageViewing from "react-native-image-viewing";
-
-interface SimilarProblem {
-  title: string;
-  explanation: string;
-  code?: string;
-}
-
-interface Problem {
-  title: string;
-  problemLink?: string;
-  description: string;
-  testCase: string;
-  explanation: string;
-  code?: string;
-  similarProblems?: SimilarProblem[];
-}
+import Header from "@/components/common/NewHeader";
+import { useOverlayStore } from "@/store/useOverlayStore";
+import { AddNewProblem, UpdateProblemForm, DeleteProblemsSheet } from "@/components/Forms/dsaForms/DsaProblems";
+import { theme } from "@/components/theme";
+import { Problem, SimilarProblem } from "@/types/types";
+import { FastCodeBlock } from "@/components/common/codeblock";
 
 export default function TopicPage() {
   const { topic } = useLocalSearchParams<{ topic?: string }>();
-  const getProblemsByTopicId = useAppStore((s) => s.getDsaProblemsByTopicId);
-  const [problems, setProblems] = useState<Problem[]>([]);
+  const { showBottomSheet } = useOverlayStore();
+
+  // Fixed store selector - stable reference
+  const allProblems = useAppStore((state) => state.dsa.problems);
+
+  // Memoize filtered problems to prevent unnecessary recalculations
+  const problems = useMemo(() => {
+    return allProblems.filter((problem) => problem.topicId === (topic || ""));
+  }, [allProblems, topic]);
+
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [previewIndex, setPreviewIndex] = useState(0);
   const [isSliding, setIsSliding] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isViewerVisible, setViewerVisible] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const currentProblem = problems[selectedIndex];
-  const images = currentProblem?.images || [];
 
-  // Animation values
-  const overlayOpacity = useRef(new Animated.Value(0)).current;
-  const textTranslateY = useRef(new Animated.Value(30)).current;
-  const textScale = useRef(new Animated.Value(0.9)).current;
+  // Memoize current problem to prevent unnecessary re-renders
+  const currentProblem = useMemo(() => problems[selectedIndex], [problems, selectedIndex]);
 
-  // Content animation values
-  const contentOpacity = useRef(new Animated.Value(1)).current;
-  const contentTranslateX = useRef(new Animated.Value(0)).current;
-  const pageScale = useRef(new Animated.Value(1)).current;
+  // Memoize images array
+  const images = useMemo(() => currentProblem?.images || [], [currentProblem?.images]);
+
+  // Memoize image data for ImageViewing
+  const imageViewingData = useMemo(() => images?.map((uri) => ({ uri })) || [], [images]);
+
+  // Group all animation values into a single ref to reduce memory usage
+  const animationRefs = useRef({
+    overlayOpacity: new Animated.Value(0),
+    textTranslateY: new Animated.Value(30),
+    textScale: new Animated.Value(0.9),
+    contentOpacity: new Animated.Value(1),
+    contentTranslateX: new Animated.Value(0),
+    pageScale: new Animated.Value(1),
+    initialOpacity: new Animated.Value(0),
+    initialTranslateY: new Animated.Value(20),
+  }).current;
+
+  // Reset selectedIndex when topic changes or problems change significantly
+  useEffect(() => {
+    if (selectedIndex >= problems.length && problems.length > 0) {
+      setSelectedIndex(0);
+      setPreviewIndex(0);
+    }
+  }, [problems.length, selectedIndex]);
+
+  // Reset when topic changes
+  useEffect(() => {
+    setSelectedIndex(0);
+    setPreviewIndex(0);
+  }, [topic]);
 
   // Initial page load animation
-  const initialOpacity = useRef(new Animated.Value(0)).current;
-  const initialTranslateY = useRef(new Animated.Value(20)).current;
-
   useEffect(() => {
-    if (topic) {
-      const result = getProblemsByTopicId(topic);
-      setProblems(result || []);
+    const { initialOpacity, initialTranslateY } = animationRefs;
 
-      // Initial page load animation
-      Animated.parallel([
-        Animated.timing(initialOpacity, {
-          toValue: 1,
-          duration: 400,
-          useNativeDriver: true,
-        }),
-        Animated.timing(initialTranslateY, {
-          toValue: 0,
-          duration: 400,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    }
-  }, [topic]);
+    Animated.parallel([
+      Animated.timing(initialOpacity, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+      Animated.timing(initialTranslateY, {
+        toValue: 0,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // Cleanup function
+    return () => {
+      // Stop all animations when component unmounts
+      Object.values(animationRefs).forEach((animValue) => {
+        animValue.stopAnimation();
+      });
+    };
+  }, []);
 
   // Animate overlay when isSliding changes
   useEffect(() => {
+    const { overlayOpacity, textTranslateY, textScale, pageScale } = animationRefs;
+
     if (isSliding) {
       // Fade in overlay with enhanced animations
       Animated.parallel([
@@ -138,58 +153,176 @@ export default function TopicPage() {
     }
   }, [isSliding]);
 
-  // Content transition animation
-  const animateContentChange = (newIndex: number) => {
-    setIsTransitioning(true);
+  // Optimized content transition animation
+  const animateContentChange = useCallback(
+    (newIndex: number) => {
+      const { contentOpacity, contentTranslateX } = animationRefs;
 
-    // Fade out and slide current content
-    Animated.parallel([
-      Animated.timing(contentOpacity, {
-        toValue: 0,
-        duration: 120,
-        useNativeDriver: true,
-      }),
-      Animated.timing(contentTranslateX, {
-        toValue: newIndex > selectedIndex ? -30 : 30,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      // Change the content
-      setSelectedIndex(newIndex);
+      setIsTransitioning(true);
+      const direction = newIndex > selectedIndex ? -30 : 30;
 
-      // Reset position and fade in new content
-      contentTranslateX.setValue(newIndex > selectedIndex ? 30 : -30);
-
+      // Fade out and slide current content
       Animated.parallel([
         Animated.timing(contentOpacity, {
-          toValue: 1,
-          duration: 180,
+          toValue: 0,
+          duration: 120,
           useNativeDriver: true,
         }),
-        Animated.spring(contentTranslateX, {
-          toValue: 0,
-          tension: 100,
-          friction: 8,
+        Animated.timing(contentTranslateX, {
+          toValue: direction,
+          duration: 200,
           useNativeDriver: true,
         }),
       ]).start(() => {
-        setIsTransitioning(false);
+        // Change the content
+        setSelectedIndex(newIndex);
+
+        // Reset position and fade in new content
+        contentTranslateX.setValue(-direction);
+
+        Animated.parallel([
+          Animated.timing(contentOpacity, {
+            toValue: 1,
+            duration: 180,
+            useNativeDriver: true,
+          }),
+          Animated.spring(contentTranslateX, {
+            toValue: 0,
+            tension: 100,
+            friction: 8,
+            useNativeDriver: true,
+          }),
+        ]).start(() => {
+          setIsTransitioning(false);
+        });
       });
-    });
-  };
+    },
+    [selectedIndex, animationRefs],
+  );
 
-  if (!problems.length) {
-    return <Text style={styles.empty}>No problems found.</Text>;
-  }
-
-  const current = problems[selectedIndex];
-
-  const handleLinkPress = () => {
-    if (current.problemLink) {
-      Linking.openURL(current.problemLink);
+  // Memoize handlers to prevent unnecessary re-renders
+  const handleLinkPress = useCallback(() => {
+    if (currentProblem?.problemLink) {
+      Linking.openURL(currentProblem.problemLink);
     }
-  };
+  }, [currentProblem?.problemLink]);
+
+  const handleImagePress = useCallback((index: number) => {
+    setCurrentImageIndex(index);
+    setViewerVisible(true);
+  }, []);
+
+  const handleImageViewerClose = useCallback(() => {
+    setViewerVisible(false);
+  }, []);
+
+  const handleSliderStart = useCallback(() => {
+    setIsSliding(true);
+  }, []);
+
+  const handleSliderChange = useCallback((val: number) => {
+    setPreviewIndex(val);
+  }, []);
+
+  const handleSliderComplete = useCallback(
+    (val: number) => {
+      setTimeout(() => {
+        setIsSliding(false);
+        if (val !== selectedIndex) {
+          animateContentChange(val);
+        }
+      }, 100);
+    },
+    [selectedIndex, animateContentChange],
+  );
+
+  // Memoize image style calculation
+  const getImageStyle = useCallback((imageCount: number, index: number) => {
+    switch (imageCount) {
+      case 1:
+        return styles.singleImage;
+      case 2:
+        return styles.twoImagesItem;
+      case 3:
+        return index === 0 ? styles.threeImagesFirst : styles.threeImagesOther;
+      case 4:
+        return styles.fourImagesItem;
+      default:
+        return styles.singleImage;
+    }
+  }, []);
+
+  // Memoize menu options to prevent recreation
+  const menuOptions = useMemo(
+    () => [
+      {
+        label: "Add a New Problem",
+        onPress: () =>
+          showBottomSheet({
+            height: 700,
+            content: <AddNewProblem topicId={topic} />,
+            title: `Add to ${topic}`,
+            subtitle: "Add a new problem to this topic",
+          }),
+      },
+      {
+        label: "Update Problem",
+        onPress: () => {
+          showBottomSheet({
+            height: 700,
+            content: <UpdateProblemForm problemId={currentProblem?.id || ""} />,
+            title: "Update problem",
+            subtitle: "Update the details of this problem",
+          });
+        },
+      },
+      {
+        label: "Delete Problem",
+        onPress: () => {
+          showBottomSheet({
+            height: 700,
+            content: <DeleteProblemsSheet problems={problems} />,
+            title: "Delete problem",
+            subtitle: "Delete this problem",
+          });
+        },
+      },
+    ],
+    [topic, currentProblem?.id, problems, showBottomSheet],
+  );
+
+  // Memoize similar problems rendering
+  const similarProblemsSection = useMemo(() => {
+    if (!currentProblem?.similarProblems?.length) return null;
+
+    return (
+      <View style={styles.similarProblemsContainer}>
+        <Text style={styles.similarProblemsTitle}>Similar Questions:</Text>
+        <View>
+          {currentProblem.similarProblems.map((question, index) => (
+            <SimilarQuestionCard key={`${question.id}-${index}`} question={question} index={index} problemId={currentProblem.id} />
+          ))}
+        </View>
+      </View>
+    );
+  }, [currentProblem?.similarProblems, currentProblem?.id]);
+
+  // Memoize images grid
+  const imagesGrid = useMemo(() => {
+    if (!images?.length) return null;
+
+    return (
+      <View style={styles.imageGrid}>
+        {images.slice(0, 4).map((img, idx) => (
+          <TouchableOpacity key={`${img}-${idx}`} style={[styles.imageThumbnail, getImageStyle(images.length, idx)]} onPress={() => handleImagePress(idx)}>
+            <Image source={{ uri: img }} style={styles.imageStyle} resizeMode="cover" />
+          </TouchableOpacity>
+        ))}
+      </View>
+    );
+  }, [images, getImageStyle, handleImagePress]);
+
+  const { overlayOpacity, textTranslateY, textScale, contentOpacity, contentTranslateX, pageScale, initialOpacity, initialTranslateY } = animationRefs;
 
   return (
     <View style={{ flex: 1 }}>
@@ -198,127 +331,69 @@ export default function TopicPage() {
           { flex: 1 },
           {
             opacity: initialOpacity,
-            transform: [
-              { translateY: initialTranslateY },
-              { scale: pageScale },
-            ],
+            transform: [{ translateY: initialTranslateY }, { scale: pageScale }],
           },
         ]}
       >
-        <ScrollView
-          style={styles.scrollView}
-          showsVerticalScrollIndicator={false}
-          scrollEnabled={!isTransitioning}
-        >
-          <Stack.Screen options={{ headerShown: false }} />
+        <Header title={currentProblem?.title || ""} leftIcon="back" rightIcon="menu" theme="dark" backgroundColor="#121212" withBorder menuOptions={menuOptions} />
 
-          <SliderComponent
-            label={`Problem ${previewIndex + 1} of ${problems.length}`}
-            min={0}
-            max={problems.length - 1}
-            step={1}
-            initialValue={selectedIndex}
-            onSlidingStart={() => setIsSliding(true)}
-            onValueChange={(val: number) => setPreviewIndex(val)}
-            onSlidingComplete={(val: number) => {
-              setTimeout(() => {
-                setIsSliding(false);
-                if (val !== selectedIndex) {
-                  animateContentChange(val);
-                }
-              }, 100);
-            }}
-          />
+        {problems.length < 1 ? (
+          <View style={{ flex: 1, justifyContent: "flex-start", alignItems: "center", backgroundColor: theme.colors.background }}>
+            <Text style={styles.empty}>No problems found</Text>
+          </View>
+        ) : (
+          <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false} scrollEnabled={!isTransitioning}>
+            <SliderComponent label={`Problem ${previewIndex + 1} of ${problems.length}`} min={0} max={problems.length - 1} step={1} initialValue={selectedIndex} onSlidingStart={handleSliderStart} onValueChange={handleSliderChange} onSlidingComplete={handleSliderComplete} />
 
-          <Animated.View
-            style={{
-              opacity: contentOpacity,
-              transform: [{ translateX: contentTranslateX }],
-            }}
-          >
-            {/* Title + YouTube link */}
-            <View style={styles.titleContainer}>
-              <Text style={styles.title}>{current.title}</Text>
-              {current.problemLink && (
-                <TouchableOpacity
-                  onPress={handleLinkPress}
-                  style={styles.linkButton}
-                >
-                  <FontAwesome name="youtube-play" size={24} color="red" />
-                </TouchableOpacity>
-              )}
-            </View>
-
-            {/* Description */}
-            <Text style={styles.description}>{current.explanation}</Text>
-
-            {/* Test Cases */}
-            <View style={styles.testCaseWrapper}>
-              <Text style={styles.testCaseTitle}>Test Case:</Text>
-              <View style={styles.testCaseContent}>
-                <Text style={styles.testCaseText}>{current.testCase}</Text>
-              </View>
-            </View>
-
-            {/* Explanation */}
-            <View style={styles.explanationContainer}>
-              <Text style={styles.explanationTitle}>Explanation:</Text>
-              <Text style={styles.explanationText}>{current.solution}</Text>
-            </View>
-
-            {/* Images Grid */}
-            {/* {images?.length > 0 && (
-              <View style={styles.imageGrid}>
-                {images.slice(0, 4).map((img, idx) => (
-                  <TouchableOpacity
-                    key={idx}
-                    style={styles.imageThumbnail}
-                    onPress={() => {
-                      setCurrentImageIndex(idx);
-                      setViewerVisible(true);
-                    }}
-                  >
-                    <Image
-                      source={{ uri: img }}
-                      style={styles.imageStyle}
-                      resizeMode="cover"
-                    />
+            <Animated.View
+              style={{
+                opacity: contentOpacity,
+                transform: [{ translateX: contentTranslateX }],
+              }}
+            >
+              {/* Title + YouTube link */}
+              <View style={styles.titleContainer}>
+                <Text style={styles.title}>{currentProblem?.title}</Text>
+                {currentProblem?.problemLink && (
+                  <TouchableOpacity onPress={handleLinkPress} style={styles.linkButton}>
+                    <FontAwesome name="youtube-play" size={24} color="red" />
                   </TouchableOpacity>
-                ))}
+                )}
               </View>
-            )}
 
+              {/* Description */}
+              <Text style={styles.description}>{currentProblem?.explanation}</Text>
 
-            <ImageViewing
-              images={images?.map((uri) => ({ uri })) || []}
-              imageIndex={currentImageIndex}
-              visible={isViewerVisible}
-              onRequestClose={() => setViewerVisible(false)}
-            /> */}
-
-            {/* Code Block */}
-            {current.code && (
-              <View style={styles.codeSection}>
-                <CodeBlock code={current.code} title="Solution Code:" />
+              {/* Test Cases */}
+              <View style={styles.testCaseWrapper}>
+                <Text style={styles.testCaseTitle}>Test Case:</Text>
+                <View style={styles.testCaseContent}>
+                  <Text style={styles.testCaseText}>{currentProblem?.testCase}</Text>
+                </View>
               </View>
-            )}
 
-            {/* Similar Problems */}
-            <View style={styles.similarProblemsContainer}>
-              <Text style={styles.similarProblemsTitle}>
-                Similar Questions:
-              </Text>
-              <View>
-                {current.similarProblems?.map((question, index) => (
-                  <SimilarQuestionCard key={index} question={question} />
-                ))}
+              {/* Explanation */}
+              <View style={styles.explanationContainer}>
+                <Text style={styles.explanationTitle}>Explanation:</Text>
+                <Text style={styles.explanationText}>{currentProblem?.solution}</Text>
               </View>
-            </View>
-          </Animated.View>
-        </ScrollView>
+
+              {/* Images Grid */}
+              {imagesGrid}
+
+              <ImageViewing images={imageViewingData} imageIndex={currentImageIndex} visible={isViewerVisible} onRequestClose={handleImageViewerClose} />
+
+              {/* Code Block */}
+              {currentProblem?.code && <FastCodeBlock code={currentProblem.code} />}
+
+              {/* Similar Problems */}
+              {similarProblemsSection}
+            </Animated.View>
+          </ScrollView>
+        )}
       </Animated.View>
 
-      {/* Animated Gradient Overlay */}
+      {/* Animated Gradient Overlay when changing topics */}
       <Animated.View
         style={[
           styles.overlayContainer,
@@ -329,26 +404,13 @@ export default function TopicPage() {
         ]}
         pointerEvents="none"
       >
-        <LinearGradient
-          colors={[
-            "rgba(0,0,0,0.95)",
-            "rgba(0,0,0,0.85)",
-            "rgba(0,0,0,0.75)",
-            "rgba(0,0,0,0.85)",
-            "rgba(0,0,0,0.95)",
-          ]}
-          locations={[0, 0.2, 0.5, 0.8, 1]}
-          style={styles.gradientOverlay}
-        >
+        <LinearGradient colors={["rgba(0,0,0,0.95)", "rgba(0,0,0,0.85)", "rgba(0,0,0,0.75)", "rgba(0,0,0,0.85)", "rgba(0,0,0,0.95)"]} locations={[0, 0.2, 0.5, 0.8, 1]} style={styles.gradientOverlay}>
           <Animated.View style={styles.textContainer}>
             <Animated.Text
               style={[
                 styles.slidingText,
                 {
-                  transform: [
-                    { translateY: textTranslateY },
-                    { scale: textScale },
-                  ],
+                  transform: [{ translateY: textTranslateY }, { scale: textScale }],
                 },
               ]}
             >
@@ -358,10 +420,7 @@ export default function TopicPage() {
               style={[
                 styles.subText,
                 {
-                  transform: [
-                    { translateY: textTranslateY },
-                    { scale: textScale },
-                  ],
+                  transform: [{ translateY: textTranslateY }, { scale: textScale }],
                 },
               ]}
             >
@@ -373,29 +432,11 @@ export default function TopicPage() {
     </View>
   );
 }
-
 const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
     paddingHorizontal: 20,
-  },
-  imageGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "center",
-    marginVertical: 10,
-  },
-  imageThumbnail: {
-    // This style is now for the TouchableOpacity
-    width: "40%", // Each touchable takes up 48% of the width
-    height: 100,
-    borderRadius: 10,
-    overflow: "hidden", // Ensures the image's corners are also rounded
-  },
-  imageStyle: {
-    // Add this new style for the Image component
-    width: "100%",
-    height: "100%",
+    backgroundColor: theme.colors.background,
   },
 
   titleContainer: {
@@ -408,7 +449,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#111827",
+    color: theme.colors.Primarytext,
     flex: 1,
   },
   linkButton: {
@@ -418,7 +459,7 @@ const styles = StyleSheet.create({
   },
   description: {
     fontSize: 14,
-    color: "#374151",
+    color: theme.colors.secondaryText,
     lineHeight: 20,
     marginBottom: 20,
   },
@@ -454,12 +495,12 @@ const styles = StyleSheet.create({
   explanationTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#111827",
+    color: theme.colors.Primarytext,
     marginBottom: 10,
   },
   explanationText: {
     fontSize: 14,
-    color: "#374151",
+    color: theme.colors.secondaryText,
     lineHeight: 20,
   },
   codeSection: {
@@ -471,7 +512,7 @@ const styles = StyleSheet.create({
   similarProblemsTitle: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#4B5563",
+    color: theme.colors.Primarytext,
     marginBottom: 10,
   },
   overlayContainer: {
@@ -515,5 +556,44 @@ const styles = StyleSheet.create({
     color: "#6B7280",
     textAlign: "center",
     marginTop: 50,
+  },
+  imageGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 2,
+    borderRadius: 6,
+    overflow: "hidden",
+    marginBottom: 10,
+  },
+  imageThumbnail: {
+    backgroundColor: "#f0f0f0",
+  },
+  imageStyle: {
+    width: "100%",
+    height: "100%",
+  },
+  // Single image
+  singleImage: {
+    width: "100%",
+    height: 140,
+  },
+  // Two images (1x2 grid)
+  twoImagesItem: {
+    width: "49.5%",
+    height: 100,
+  },
+  // Three images (2x1 grid with first image larger)
+  threeImagesFirst: {
+    width: "100%",
+    height: 100,
+  },
+  threeImagesOther: {
+    width: "49.5%",
+    height: 75,
+  },
+  // Four images (2x2 grid)
+  fourImagesItem: {
+    width: "49.5%",
+    height: 90,
   },
 });

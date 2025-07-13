@@ -1,7 +1,10 @@
-import { View, Text, Dimensions, Animated, StyleSheet } from "react-native";
+import { View, Text, Dimensions, Animated, StyleSheet, Pressable } from "react-native";
 import { PieChart } from "react-native-chart-kit";
-import { useAppStore } from "../../hooks/useStore";
+import { useAppStore } from "@/store/useStore";
 import { useEffect, useRef, useMemo } from "react";
+import { dsaLibrary } from "@/utils/dsaLibraray";
+import { Link } from "expo-router";
+import { ArrowUpRightIcon } from "../common/icons";
 
 const screenWidth = Dimensions.get("window").width;
 const chartHeight = Math.floor(Dimensions.get("window").height / 3);
@@ -9,6 +12,7 @@ const chartHeight = Math.floor(Dimensions.get("window").height / 3);
 export default function StatsChart() {
   const problems = useAppStore((state) => state.dsa.problems);
   const topics = useAppStore((state) => state.dsa.topics);
+  const stats = dsaLibrary();
 
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -18,15 +22,15 @@ export default function StatsChart() {
 
   const colorPalette = useMemo(
     () => [
-      "#F87171", // red
-      "#FBBF24", // yellow
-      "#34D399", // green
-      "#60A5FA", // blue
-      "#A78BFA", // purple
-      "#F472B6", // pink
-      "#FCD34D", // amber
-      "#6EE7B7", // emerald
-      "#93C5FD", // sky
+      "#ffbe0b", // red
+      "#fb5607", // yellow
+      "#ff006e", // green
+      "#8338ec", // blue
+      "#3a86ff", // purple
+      "#80ed99", // pink
+      "#d62828", // amber
+      "#ffd6ff", // emerald
+      "#ff0054", // sky
       "#D8B4FE", // violet
     ],
     [],
@@ -63,6 +67,7 @@ export default function StatsChart() {
     return topics
       .map((topic, index) => {
         const count = problems.filter((p) => p.topicId === topic.id).length;
+
         return {
           name: topic.title,
           count,
@@ -121,11 +126,26 @@ export default function StatsChart() {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}> Problem Stats</Text>
-        <Text style={styles.subtitle}>Total: {total}</Text>
+        <Link href="/dsaLibrary" asChild>
+          <Pressable
+            style={{
+              flexDirection: "row",
+              justifyContent: "center",
+              alignItems: "center",
+              paddingHorizontal: 2,
+              borderRadius: 24,
+            }}
+          >
+            <Text style={styles.subtitle}>
+              Total: {total}/{stats.totalProblems}
+            </Text>
+            <ArrowUpRightIcon size={18} />
+          </Pressable>
+        </Link>
       </View>
 
       {/* Chart */}
-      {chartData.length > 0 ? (
+      {chartData.length >= -1 ? (
         <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
           <PieChart
             data={chartData}
@@ -142,6 +162,7 @@ export default function StatsChart() {
             backgroundColor="transparent"
             center={[0, 0]}
             absolute
+            paddingLeft="0"
           />
         </Animated.View>
       ) : (
@@ -152,15 +173,9 @@ export default function StatsChart() {
 
       {/* Stats summary */}
       <View style={styles.statsRow}>
-        <Text style={[styles.statsText, { color: "#34D399" }]}>
-          Easy: {easy}
-        </Text>
-        <Text style={[styles.statsText, { color: "#FBBF24" }]}>
-          Medium: {medium}
-        </Text>
-        <Text style={[styles.statsText, { color: "#F87171" }]}>
-          Hard: {hard}
-        </Text>
+        <Text style={[styles.statsText, { color: "#25a18e" }]}>Easy: {easy}</Text>
+        <Text style={[styles.statsText, { color: "#FBBF24" }]}>Medium: {medium}</Text>
+        <Text style={[styles.statsText, { color: "#f94144" }]}>Hard: {hard}</Text>
       </View>
     </Animated.View>
   );

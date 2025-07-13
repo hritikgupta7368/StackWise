@@ -1,78 +1,56 @@
-import { View, Text, StyleSheet, SafeAreaView, ScrollView } from "react-native";
+import { View, Text, StyleSheet, ScrollView, Button } from "react-native";
 import BackgroundWrapper from "../../components/Background/backgroundWrapper";
 import RadialProgressChart from "../../components/Charts/radialChart";
 import OverlappingCirclesCard from "../../components/LiveTiles/DsaTiles";
 import DummyTile from "../../components/LiveTiles/DummyTile";
-import { SettingsIcon } from "../../components/ui/icons";
+import { SettingsIcon } from "@/components/common/icons";
 import { Link } from "expo-router";
+import TargetWidget from "@/components/Cards/TargetWidget";
+
+import DailyGoalWidget from "@/components/Charts/DailyGoalWidget";
+import TodaysTasks from "@/components/Charts/TasksListWidget";
 
 export default function Home() {
-  const chartData1 = [
-    {
-      id: "ring1",
-      color: "#1E90FF", // Dodger Blue (Outer - Darker)
-      label: "Chrome",
-      current: 850,
-      goal: 1000,
-    },
-    {
-      id: "ring2",
-      color: "#4682B4", // Steel Blue (Mid-outer)
-      label: "Safari",
-      current: 70,
-      goal: 100,
-    },
-    {
-      id: "ring3",
-      color: "#87CEEB", // Sky Blue (Mid-inner)
-      label: "Firefox",
-      current: 50,
-      goal: 60,
-    },
-    {
-      id: "ring4",
-      color: "#ADD8E6", // Light Blue (Inner - Lightest)
-      label: "Edge",
-      current: 20,
-      goal: 40,
-    },
-  ];
-
   return (
     <BackgroundWrapper>
-      <SafeAreaView style={styles.safeArea}>
-        {/* Header */}
-        <View style={styles.HeaderContainer}>
-          <Text style={styles.title}>Hi Hritik</Text>
-          <SettingsIcon />
+      {/* Header */}
+      <View style={styles.HeaderContainer}>
+        <Text style={styles.title}>Hi Hritik</Text>
+        <Link href="/settings">
+          <SettingsIcon size={24} color="white" />
+        </Link>
+      </View>
+
+      <ScrollView style={styles.Contents}>
+        <View style={{ paddingHorizontal: 4 }}>
+          <DailyGoalWidget />
+        </View>
+        <View style={{ paddingHorizontal: 4, flexDirection: "row", gap: 4 }}>
+          <TodaysTasks />
+          <RadialProgressChart />
         </View>
 
-        <ScrollView style={styles.Contents}>
-          <RadialProgressChart data={chartData1} />
-          <View style={styles.tileRow}>
-            <OverlappingCirclesCard />
-            <DummyTile />
-          </View>
-          <Link href="/test">
-            <Text>go to test</Text>
-          </Link>
-        </ScrollView>
-      </SafeAreaView>
+        {/* <View style={styles.tileRow}>
+          <OverlappingCirclesCard />
+        </View> */}
+        <TargetWidget />
+        <Link href="/test">
+          <Text>go to test</Text>
+        </Link>
+      </ScrollView>
     </BackgroundWrapper>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    paddingVertical: 70,
-  },
   HeaderContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 30,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    paddingTop: 48,
+    marginBottom: 16,
   },
   title: {
     color: "#fff",
@@ -80,7 +58,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   Contents: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 4,
   },
   tileRow: {
     flexDirection: "row",

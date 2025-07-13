@@ -1,97 +1,108 @@
-import React, { useCallback, useMemo, useState } from "react";
-import { View, Text, Dimensions, StyleSheet, FlatList } from "react-native";
+import React, { useCallback, useState } from "react";
+import { View, StyleSheet } from "react-native";
+import Header from "@/components/common/NewHeader";
+import { useAppStore } from "@/store/useStore";
+import InterviewCard from "@/components/Cards/InterviewCard";
 import { FlashList } from "@shopify/flash-list";
-import { useAppStore } from "@/hooks/useStore";
-import SubTopicCard from "@/components/ui/SubTopicCard"; // Same component reused
+import { useOverlayStore } from "@/store/useOverlayStore";
+import AddBlockForm from "@/components/Forms/coreForms/AddBlockForm";
+import EditBlockForm from "@/components/Forms/coreForms/EditBlockForm";
+import { AddInterviewQuestionForm, DeleteInterviewQuestionSheet } from "@/components/Forms/interviewForms/InterviewQuestionForms";
 
 export default function Interview() {
-  const interviewQuestions = useAppStore((s) => s.interview.questions);
+  const questions = useAppStore((s) => s.interview.questions);
+  const { showDialogModal, showBottomSheet, hideBottomSheet } = useOverlayStore();
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const toggleExpanded = useCallback((subId: string) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      next.has(subId) ? next.delete(subId) : next.add(subId);
+      return next;
+    });
+  }, []);
 
-  const isLastMemo = useMemo(() => {
-    const len = interviewQuestions.length;
-    return (index: number) => index === len - 1;
-  }, [interviewQuestions.length]);
-
-  const keyExtractor = useCallback((item: any) => item.id, []);
-
-  // In your Interview component's renderItem
-  const renderItem = useCallback(
-    ({ item, index }: { item: any; index: number }) => {
-      return (
-        <SubTopicCard
-          subtopic={{ id: item.id, title: item.question, content: item.answer }}
-          isLast={isLastMemo(index)}
-          isExpanded={expandedId === item.id}
-          onToggle={() => {
-            const newExpandedId = expandedId === item.id ? null : item.id;
-
-            setExpandedId(newExpandedId);
-          }}
-          selectionMode="none"
-          isSelected={false}
-          showCheckbox={false}
-          showRenameHighlight={false}
-        />
-      );
+  const handleAddBlock = useCallback(
+    (id: string, at: number) => {
+      showBottomSheet({
+        title: "Add Block",
+        subtitle: "Add block to interview answer",
+        height: 700,
+        content: (
+          <AddBlockForm
+            onSubmit={(newBlock) => {
+              useAppStore.getState().insertInterviewAnswerBlock(id, at, newBlock);
+              hideBottomSheet();
+            }}
+          />
+        ),
+      });
     },
-    [expandedId, isLastMemo],
+    [hideBottomSheet, showBottomSheet],
   );
 
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Interview Questions</Text>
-
-      {interviewQuestions.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>No Interview Questions</Text>
-        </View>
-      ) : (
-        <FlashList
-          data={interviewQuestions}
-          keyExtractor={keyExtractor}
-          renderItem={renderItem}
-          estimatedItemSize={80}
-          contentContainerStyle={styles.listContent}
-          extraData={expandedId} // This tells FlashList to re-render when expandedId changes
-          removeClippedSubviews
-          initialNumToRender={5}
-          maxToRenderPerBatch={10}
-          windowSize={5}
-          estimatedListSize={{
-            width: Dimensions.get("window").width,
-            height: Dimensions.get("window").height,
+  const handleEditBlock = useCallback((id: string, block, index) => {
+    showBottomSheet({
+      title: "Edit Block",
+      subtitle: `Editing ${block.type} block`,
+      height: 700,
+      content: (
+        <EditBlockForm
+          initialBlock={block}
+          onSubmit={(updated) => {
+            useAppStore.getState().updateInterviewAnswerBlock(id, index, updated);
+            hideBottomSheet();
           }}
         />
-      )}
+      ),
+    });
+  }, []);
+
+  const handleDeleteBlock = useCallback((id: string, index: number) => {
+    useAppStore.getState().deleteInterviewAnswerBlock(id, index);
+  }, []);
+
+  return (
+    <View style={styles.page}>
+      <Header
+        title="Interview Prep"
+        theme="dark"
+        leftIcon="none"
+        rightIcon="menu"
+        menuOptions={[
+          {
+            label: "Add Interview Question",
+            onPress: () => {
+              showDialogModal({
+                title: "Add Interview Question",
+                subtitle: "Enter a question to get started",
+                type: "default",
+                content: <AddInterviewQuestionForm insertIndex={questions.length} />,
+              });
+            },
+          },
+          {
+            label: "Delete Questions",
+            onPress: () => {
+              showBottomSheet({
+                title: "Delete Interview Questions",
+                subtitle: "Select and delete questions",
+                height: 600,
+                content: <DeleteInterviewQuestionSheet />,
+              });
+            },
+          },
+        ]}
+      />
+
+      <FlashList extraData={expandedIds} data={questions} estimatedItemSize={200} contentContainerStyle={{ padding: 14, paddingBottom: 100 }} renderItem={({ item }) => <InterviewCard id={item.id} question={item.question} answer={item.answer} isExpanded={expandedIds.has(item.id)} onToggle={() => toggleExpanded(item.id)} onAddBlock={() => handleAddBlock(item.id, item.answer.length)} onEditBlock={(blk, idx) => handleEditBlock(item.id, blk, idx)} onDeleteBlock={(idx) => handleDeleteBlock(item.id, idx)} />} showsVerticalScrollIndicator={false} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  page: {
     flex: 1,
-    backgroundColor: "#1d1d1f",
-    paddingTop: 35,
-    padding: 16,
-  },
-  title: {
-    fontSize: 24,
-    color: "#fff",
-    fontWeight: "bold",
-    marginBottom: 12,
-  },
-  listContent: {
-    paddingVertical: 4,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  emptyText: {
-    color: "#999",
-    fontSize: 16,
+    backgroundColor: "#111",
   },
 });

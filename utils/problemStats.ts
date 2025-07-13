@@ -1,25 +1,11 @@
-import { useAppStore } from "@/hooks/useStore";
+import { useAppStore } from "@/store/useStore";
 import { useMemo } from "react";
 
 export function useProblemStats() {
   const problems = useAppStore((state) => state.dsa.problems);
   const topics = useAppStore((state) => state.dsa.topics);
 
-  const colorPalette = useMemo(
-    () => [
-      "#F87171",
-      "#FBBF24",
-      "#34D399",
-      "#60A5FA",
-      "#A78BFA",
-      "#F472B6",
-      "#FCD34D",
-      "#6EE7B7",
-      "#93C5FD",
-      "#D8B4FE",
-    ],
-    [],
-  );
+  const colorPalette = useMemo(() => ["#F87171", "#FBBF24", "#34D399", "#60A5FA", "#A78BFA", "#F472B6", "#FCD34D", "#6EE7B7", "#93C5FD", "#D8B4FE"], []);
 
   const difficultyStats = useMemo(() => {
     let easy = 0,
